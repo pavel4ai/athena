@@ -8,21 +8,15 @@
 </p>
 <p align="center">
   <a href="https://github.com/pavel4ai/athena/docs/"><img src="https://img.shields.io/badge/Docs-futurebnd.com-FFD700?style=for-the-badge" alt="Documentation"></a>
-  <a href="https://futurebnd.com"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/pavel4ai/athena/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://futurebnd.com"><img src="https://img.shields.io/badge/Built%20by-Futurebound%20Corp.-blueviolet?style=for-the-badge" alt="Built by Futurebound Corp."></a>
-  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
-  <a href="README.ur-pk.md"><img src="https://img.shields.io/badge/Lang-اردو-green?style=for-the-badge" alt="اردو"></a>
-  <a href="README.es.md"><img src="https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge" alt="Español"></a>
 </p>
 
-**The self-improving AI agent built by [Futurebound Corp.](https://futurebnd.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
-
-Use any model you want — [Nous Portal](https://futurebnd.com), [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai) (AI-native cloud for Model API, Agent Sandbox, and GPU Cloud), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `athena model` — no code changes, no lock-in.
+**Athena is an agentic investment intelligence platform that combines macroeconomic analysis, quantitative reasoning, fundamental research, and continuous learning to construct and manage portfolios with disciplined risk control.**
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
-<tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
+<tr><td><b>Lives where you do</b></td><td>Telegram, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
 <tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
 <tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
@@ -109,7 +103,7 @@ athena              # Interactive CLI — start a conversation
 athena model        # Choose your LLM provider and model
 athena tools        # Configure which tools are enabled
 athena config set   # Set individual config values
-athena gateway      # Start the messaging gateway (Telegram, Discord, etc.)
+athena gateway      # Start the messaging gateway (Telegram, Slack, etc.)
 athena setup        # Run the full setup wizard (configures everything at once)
 athena claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
 athena update       # Update to the latest version
@@ -118,30 +112,9 @@ athena doctor       # Diagnose any issues
 
 📖 **[Full documentation →](https://github.com/pavel4ai/athena/docs/)**
 
----
-
-## Skip the API-key collection — Nous Portal
-
-Athena works with whatever provider you want — that's not changing. But if you'd rather not collect five separate API keys for the model, web search, image generation, TTS, and a cloud browser, **[Nous Portal](https://futurebnd.com)** covers all of them under one subscription:
-
-- **300+ models** — pick any of them with `/model <name>`
-- **Tool Gateway** — web search (Firecrawl), image generation (FAL), text-to-speech (OpenAI), cloud browser (Browser Use), all routed through your sub. No extra accounts.
-
-One command from a fresh install:
-
-```bash
-athena setup --portal
-```
-
-That logs you in via OAuth, sets Nous as your provider, and turns on the Tool Gateway. Check what's wired up any time with `athena portal info`. Full details on the [Tool Gateway docs page](https://github.com/pavel4ai/athena/docs/user-guide/features/tool-gateway).
-
-You can still bring your own keys per-tool whenever you want — the gateway is per-backend, not all-or-nothing.
-
----
-
 ## CLI vs Messaging Quick Reference
 
-Athena has two entry points: start the terminal UI with `athena`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+Athena has two entry points: start the terminal UI with `athena`, or run the gateway and talk to it from Telegram, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
 
 | Action                         | CLI                                           | Messaging platforms                                                              |
 | ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -168,7 +141,7 @@ All documentation lives at **[futurebnd.com/docs](https://github.com/pavel4ai/at
 | [Quickstart](https://github.com/pavel4ai/athena/docs/getting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
 | [CLI Usage](https://github.com/pavel4ai/athena/docs/user-guide/cli)                              | Commands, keybindings, personalities, sessions             |
 | [Configuration](https://github.com/pavel4ai/athena/docs/user-guide/configuration)                | Config file, providers, models, all options                |
-| [Messaging Gateway](https://github.com/pavel4ai/athena/docs/user-guide/messaging)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
+| [Messaging Gateway](https://github.com/pavel4ai/athena/docs/user-guide/messaging)                | Telegram, Slack, WhatsApp, Signal, Home Assistant          |
 | [Security](https://github.com/pavel4ai/athena/docs/user-guide/security)                          | Command approval, DM pairing, container isolation          |
 | [Tools & Toolsets](https://github.com/pavel4ai/athena/docs/user-guide/features/tools)            | 40+ tools, toolset system, terminal backends               |
 | [Skills System](https://github.com/pavel4ai/athena/docs/user-guide/features/skills)              | Procedural memory, Skills Hub, creating skills             |
@@ -244,7 +217,6 @@ scripts/run_tests.sh
 
 ## Community
 
-- 💬 [Discord](https://futurebnd.com)
 - 📚 [Skills Hub](https://agentskills.io)
 - 🐛 [Issues](https://github.com/pavel4ai/athena/issues)
 - 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Athena and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
