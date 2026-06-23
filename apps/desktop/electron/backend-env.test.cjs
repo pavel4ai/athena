@@ -7,22 +7,22 @@ const {
   appendUniquePathEntries,
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
-  normalizeHermesHomeRoot,
+  normalizeAthenaHomeRoot,
   pathEnvKey
 } = require('./backend-env.cjs')
 
-test('desktop backend PATH adds Hermes-managed bins and missing POSIX sane entries', () => {
+test('desktop backend PATH adds Athena-managed bins and missing POSIX sane entries', () => {
   const result = buildDesktopBackendPath({
-    hermesHome: '/Users/test/.hermes',
-    venvRoot: '/Users/test/.hermes/hermes-agent/venv',
+    athenaHome: '/Users/test/.athena',
+    venvRoot: '/Users/test/.athena/athena-agent/venv',
     currentPath: '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin',
     platform: 'darwin',
     pathModule: path.posix
   })
 
   const entries = result.split(':')
-  assert.equal(entries[0], '/Users/test/.hermes/node/bin')
-  assert.equal(entries[1], '/Users/test/.hermes/hermes-agent/venv/bin')
+  assert.equal(entries[0], '/Users/test/.athena/node/bin')
+  assert.equal(entries[1], '/Users/test/.athena/athena-agent/venv/bin')
   assert.ok(entries.includes('/opt/homebrew/bin'), 'Apple Silicon Homebrew bin is added')
   assert.ok(entries.includes('/opt/homebrew/sbin'), 'Apple Silicon Homebrew sbin is added')
   assert.ok(entries.includes('/usr/local/sbin'), 'missing standard sbin is added')
@@ -34,8 +34,8 @@ test('desktop backend PATH adds Hermes-managed bins and missing POSIX sane entri
 
 test('desktop backend PATH preserves first occurrence and avoids duplicates', () => {
   const result = buildDesktopBackendPath({
-    hermesHome: '/Users/test/.hermes',
-    venvRoot: '/Users/test/.hermes/hermes-agent/venv',
+    athenaHome: '/Users/test/.athena',
+    venvRoot: '/Users/test/.athena/athena-agent/venv',
     currentPath: '/opt/homebrew/bin:/usr/bin:/opt/homebrew/bin:/bin',
     platform: 'darwin',
     pathModule: path.posix
@@ -51,9 +51,9 @@ test('desktop backend PATH preserves first occurrence and avoids duplicates', ()
 
 test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () => {
   const env = buildDesktopBackendEnv({
-    hermesHome: '/Users/test/.hermes',
-    pythonPathEntries: ['/repo/hermes-agent'],
-    venvRoot: '/Users/test/.hermes/hermes-agent/venv',
+    athenaHome: '/Users/test/.athena',
+    pythonPathEntries: ['/repo/athena-agent'],
+    venvRoot: '/Users/test/.athena/athena-agent/venv',
     currentEnv: {
       PATH: '/usr/bin:/bin',
       PYTHONPATH: '/existing/pythonpath'
@@ -62,31 +62,31 @@ test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () =
     pathModule: path.posix
   })
 
-  assert.equal(env.PYTHONPATH, '/repo/hermes-agent:/existing/pythonpath')
-  assert.ok(env.PATH.startsWith('/Users/test/.hermes/node/bin:/Users/test/.hermes/hermes-agent/venv/bin:'))
+  assert.equal(env.PYTHONPATH, '/repo/athena-agent:/existing/pythonpath')
+  assert.ok(env.PATH.startsWith('/Users/test/.athena/node/bin:/Users/test/.athena/athena-agent/venv/bin:'))
   assert.ok(env.PATH.includes('/opt/homebrew/bin'))
 })
 
-test('normalizeHermesHomeRoot maps profile homes back to the global Hermes root', () => {
+test('normalizeAthenaHomeRoot maps profile homes back to the global Athena root', () => {
   assert.equal(
-    normalizeHermesHomeRoot('/Users/test/.hermes/profiles/oracle', { pathModule: path.posix }),
-    '/Users/test/.hermes'
+    normalizeAthenaHomeRoot('/Users/test/.athena/profiles/oracle', { pathModule: path.posix }),
+    '/Users/test/.athena'
   )
   assert.equal(
-    normalizeHermesHomeRoot('C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\oracle', { pathModule: path.win32 }),
-    'C:\\Users\\test\\AppData\\Local\\hermes'
+    normalizeAthenaHomeRoot('C:\\Users\\test\\AppData\\Local\\athena\\profiles\\oracle', { pathModule: path.win32 }),
+    'C:\\Users\\test\\AppData\\Local\\athena'
   )
   assert.equal(
-    normalizeHermesHomeRoot('/Users/test/.hermes', { pathModule: path.posix }),
-    '/Users/test/.hermes'
+    normalizeAthenaHomeRoot('/Users/test/.athena', { pathModule: path.posix }),
+    '/Users/test/.athena'
   )
 })
 
 test('Windows PATH casing and delimiter are preserved without POSIX sane entries', () => {
   const env = buildDesktopBackendEnv({
-    hermesHome: 'C:\\Users\\test\\AppData\\Local\\hermes',
-    pythonPathEntries: ['C:\\repo\\hermes-agent'],
-    venvRoot: 'C:\\Users\\test\\AppData\\Local\\hermes\\hermes-agent\\venv',
+    athenaHome: 'C:\\Users\\test\\AppData\\Local\\athena',
+    pythonPathEntries: ['C:\\repo\\athena-agent'],
+    venvRoot: 'C:\\Users\\test\\AppData\\Local\\athena\\athena-agent\\venv',
     currentEnv: {
       Path: 'C:\\Windows\\System32;C:\\Windows',
       PYTHONPATH: 'C:\\existing\\pythonpath'
@@ -97,7 +97,7 @@ test('Windows PATH casing and delimiter are preserved without POSIX sane entries
 
   assert.equal(pathEnvKey({ Path: 'x' }, 'win32'), 'Path')
   assert.equal(env.PATH, undefined)
-  assert.ok(env.Path.startsWith('C:\\Users\\test\\AppData\\Local\\hermes\\node\\bin;'))
+  assert.ok(env.Path.startsWith('C:\\Users\\test\\AppData\\Local\\athena\\node\\bin;'))
   assert.ok(env.Path.includes('\\venv\\Scripts;'))
   assert.ok(env.Path.includes(';C:\\Windows\\System32;C:\\Windows'))
   assert.equal(env.Path.includes('/opt/homebrew/bin'), false)

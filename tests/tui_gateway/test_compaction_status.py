@@ -20,12 +20,12 @@ def server():
     with patch.dict(
         "sys.modules",
         {
-            "hermes_constants": MagicMock(
-                get_hermes_home=MagicMock(return_value="/tmp/hermes_test_compaction")
+            "athena_constants": MagicMock(
+                get_athena_home=MagicMock(return_value="/tmp/athena_test_compaction")
             ),
-            "hermes_cli.env_loader": MagicMock(),
-            "hermes_cli.banner": MagicMock(),
-            "hermes_state": MagicMock(),
+            "athena_cli.env_loader": MagicMock(),
+            "athena_cli.banner": MagicMock(),
+            "athena_state": MagicMock(),
         },
     ):
         yield importlib.import_module("tui_gateway.server")

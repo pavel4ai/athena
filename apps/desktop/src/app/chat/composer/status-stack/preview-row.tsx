@@ -62,7 +62,7 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
 
   const openInBrowser = async () => {
     try {
-      const bridge = window.hermesDesktop?.openPreviewInBrowser
+      const bridge = window.athenaDesktop?.openPreviewInBrowser
 
       if (!bridge) {
         throw new Error('Desktop preview browser bridge is unavailable')

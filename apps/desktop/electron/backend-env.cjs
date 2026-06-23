@@ -50,26 +50,26 @@ function appendUniquePathEntries(entries, { delimiter = path.delimiter } = {}) {
 }
 
 function buildDesktopBackendPath({
-  hermesHome,
+  athenaHome,
   venvRoot,
   currentPath = '',
   platform = process.platform,
   pathModule = pathModuleForPlatform(platform)
 } = {}) {
   const delimiter = delimiterForPlatform(platform)
-  const hermesNodeBin = hermesHome ? pathModule.join(hermesHome, 'node', 'bin') : null
+  const athenaNodeBin = athenaHome ? pathModule.join(athenaHome, 'node', 'bin') : null
   const venvBin = venvRoot ? pathModule.join(venvRoot, platform === 'win32' ? 'Scripts' : 'bin') : null
   const saneEntries = platform === 'win32' ? [] : POSIX_SANE_PATH_ENTRIES
 
   return appendUniquePathEntries(
-    [hermesNodeBin, venvBin, currentPath, saneEntries],
+    [athenaNodeBin, venvBin, currentPath, saneEntries],
     { delimiter }
   )
 }
 
-function normalizeHermesHomeRoot(hermesHome, { pathModule = pathModuleForPlatform(process.platform) } = {}) {
-  if (!hermesHome) return hermesHome
-  const resolved = pathModule.resolve(String(hermesHome))
+function normalizeAthenaHomeRoot(athenaHome, { pathModule = pathModuleForPlatform(process.platform) } = {}) {
+  if (!athenaHome) return athenaHome
+  const resolved = pathModule.resolve(String(athenaHome))
   const parent = pathModule.dirname(resolved)
   if (pathModule.basename(parent).toLowerCase() === 'profiles') {
     return pathModule.dirname(parent)
@@ -78,7 +78,7 @@ function normalizeHermesHomeRoot(hermesHome, { pathModule = pathModuleForPlatfor
 }
 
 function buildDesktopBackendEnv({
-  hermesHome,
+  athenaHome,
   pythonPathEntries = [],
   venvRoot,
   currentEnv = process.env,
@@ -92,7 +92,7 @@ function buildDesktopBackendEnv({
   return {
     PYTHONPATH: appendUniquePathEntries([...pythonPathEntries, currentPythonPath], { delimiter }),
     [key]: buildDesktopBackendPath({
-      hermesHome,
+      athenaHome,
       venvRoot,
       currentPath: currentPathValue(currentEnv, platform),
       platform,
@@ -107,6 +107,6 @@ module.exports = {
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
   delimiterForPlatform,
-  normalizeHermesHomeRoot,
+  normalizeAthenaHomeRoot,
   pathEnvKey
 }

@@ -145,8 +145,8 @@ export interface Translations {
     starting: string;
     startedInBackground: string;
     stopped: string;
-    updateHermes: string;
-    updatingHermes: string;
+    updateAthena: string;
+    updatingAthena: string;
     waitingForOutput: string;
   };
 
@@ -560,7 +560,7 @@ export interface Translations {
     fontMono?: string;
   };
 
-  // ── Achievements plugin (plugins/hermes-achievements) ──
+  // ── Achievements plugin (plugins/athena-achievements) ──
   achievements: {
     hero: {
       kicker: string;
