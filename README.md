@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/pavel4ai/athena/docs/"><img src="https://img.shields.io/badge/Docs-futurebnd.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://github.com/pavel4ai/athena/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://futurebnd.com"><img src="https://img.shields.io/badge/Built%20by-Futurebound%20Corp.-blueviolet?style=for-the-badge" alt="Built by Futurebound Corp."></a>
+  <a href="https://futurebnd.com"><img src="https://img.shields.io/badge/Improved%20by-Futurebound%20Corp.-blueviolet?style=for-the-badge" alt="Improved by Futurebound Corp."></a>
 </p>
 
 **Athena is an agentic investment intelligence platform that combines macroeconomic analysis, quantitative reasoning, fundamental research, and continuous learning to construct and manage portfolios with disciplined risk control.**
@@ -228,4 +228,4 @@ scripts/run_tests.sh
 
 MIT — see [LICENSE](LICENSE).
 
-Built by [Futurebound Corp.](https://futurebnd.com).
+Improved by [Futurebound Corp.](https://futurebnd.com).
