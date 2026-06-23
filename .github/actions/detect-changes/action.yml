@@ -3,11 +3,7 @@ description: >-
   Classify a PR's changed files into CI work categories (python, frontend,
   site) so heavy jobs can skip work they cannot be affected by. Outputs are
   always "true" on push/dispatch events and fail open (everything "true") when
-  the diff cannot be computed — a skipped category must never be a false
-  negative.
-
-# The caller must check out the repo with `fetch-depth: 0` BEFORE using this
-# action, so both the PR base and head commits are present for `git diff`.
+  the diff cannot be computed.
 
 outputs:
   python:
@@ -27,22 +23,25 @@ runs:
       id: classify
       shell: bash
       env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
         EVENT_NAME: ${{ github.event_name }}
-        BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
         set -euo pipefail
+
         # Only pull_request events are gated. Other events (push, release,
         # dispatch) leave CHANGED empty, so the classifier fails open and every
-        # lane runs — post-merge / on-demand validation is never weakened.
+        # lane runs. Post-merge / on-demand validation is never weakened.
         if [ "$EVENT_NAME" = "pull_request" ]; then
-          # Three-dot diff = what the PR introduces vs its merge base, matching
-          # how a reviewer reads it. An uncomputable diff (shallow clone, etc.)
-          # yields an empty list, which the classifier also fails open on.
-          CHANGED="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}" || true)"
+          # Pull changes for this PR via the Github API to avoid
+          # having to check out the entire repo's history
+          CHANGED="$(gh api \
+            --paginate \
+            "repos/${REPO}/pulls/${PR_NUMBER}/files" \
+            --jq '.[].filename' || true)"
         fi
+
         echo "Changed files:"
         printf '%s\n' "${CHANGED:-(none)}"
-        # Caller already checked out the repo, so the classifier is at its
-        # repo-relative path. It is the single source of the fail-open default.
         printf '%s\n' "${CHANGED:-}" | python3 scripts/ci/classify_changes.py

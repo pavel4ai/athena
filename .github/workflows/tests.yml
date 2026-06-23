@@ -31,8 +31,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history so detect-changes can diff base...head
 
       # On PRs that touch no Python, every step below is skipped and the job
       # reports green. The check still runs (no `on.paths` filter), so the
@@ -181,8 +179,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history so detect-changes can diff base...head
 
       - name: Detect affected areas
         id: changes

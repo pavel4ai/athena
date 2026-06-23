@@ -11,10 +11,6 @@ name: Lint (ruff + ty)
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "website/**"
 
   # No paths filter — the job must always run so the required check
   # reports a status (path-gated workflows leave checks "pending" forever
@@ -33,6 +29,7 @@ concurrency:
 jobs:
   lint-diff:
     name: ruff + ty diff
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -181,9 +178,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history so detect-changes can diff base...head
-
       - name: Detect affected areas
         id: changes
         uses: ./.github/actions/detect-changes
@@ -214,8 +208,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history so detect-changes can diff base...head
 
       - name: Detect affected areas
         id: changes

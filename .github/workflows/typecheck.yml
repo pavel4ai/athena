@@ -20,8 +20,6 @@ jobs:
       fail-fast: false # report all failures, not just the first one
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history so detect-changes can diff base...head
       # Skip the install + typecheck on PRs that touch no TypeScript. The job
       # still runs and reports green (only the steps below are skipped), so the
       # required check never hangs the way an `on.paths` filter would.
@@ -47,8 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0 # full history so detect-changes can diff base...head
       - id: changes
         uses: ./.github/actions/detect-changes
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
