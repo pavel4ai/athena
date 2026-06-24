@@ -138,6 +138,34 @@ After this, the agent can use any command below without further setup. OAuth 2.0
 > ```
 > If `HOME=/opt/data xurl auth status` succeeds but `HOME=/opt/data/home xurl auth status` shows no apps or tokens, Athena tool calls will not see the credentials.
 
+### Athena news/search setup note
+
+For Athena investment-news workflows, prefer app-only Bearer token auth for read/search:
+
+```bash
+xurl auth status
+xurl --app APP_NAME --auth app search "AI infrastructure news lang:en" -n 10
+```
+
+Use the non-secret app metadata saved by setup when available:
+
+- `social.xurl.app_name`
+- `social.xurl.username`
+
+If `xurl auth status` shows credentials under another app, either pass:
+
+```bash
+--app APP_NAME
+```
+
+or run, directly in the terminal:
+
+```bash
+xurl auth default APP_NAME USERNAME
+```
+
+Never read or print `~/.xurl`. Never ask the user to paste tokens into chat.
+
 ---
 
 ## Quick Reference

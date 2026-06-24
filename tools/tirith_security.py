@@ -251,6 +251,11 @@ def is_platform_supported() -> bool:
     return _detect_target() is not None
 
 
+def is_install_in_progress() -> bool:
+    """Return True while the background tirith installer is still running."""
+    return _install_thread is not None and _install_thread.is_alive()
+
+
 def _download_file(url: str, dest: str, timeout: int = 10):
     """Download a URL to a local file."""
     req = urllib.request.Request(url)

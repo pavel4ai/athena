@@ -238,7 +238,10 @@ termux-all = [
   "athena-agent[web]",
 ]
 dingtalk = ["dingtalk-stream==0.24.3", "alibabacloud-dingtalk==2.2.42", "qrcode==7.4.2"]
-feishu = ["lark-oapi==1.5.3", "qrcode==7.4.2"]
+# lark-oapi still imports pkg_resources for namespace-package setup; keep
+# setuptools pinned below the v82 removal. Athena suppresses the SDK's
+# deprecation warning at its Feishu import boundary.
+feishu = ["lark-oapi==1.5.3", "qrcode==7.4.2", "setuptools==81.0.0"]
 google = [
   # Required by the google-workspace skill (Gmail, Calendar, Drive, Contacts,
   # Sheets, Docs).  Declared here so packagers (Nix, Homebrew) ship them with

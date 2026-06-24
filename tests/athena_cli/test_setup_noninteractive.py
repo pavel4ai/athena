@@ -144,6 +144,45 @@ class TestNonInteractiveSetup:
         out = capsys.readouterr().out
         assert "athena config set model.provider custom" in out
 
+    def test_chat_missing_config_runs_setup_even_with_provider_env(self):
+        """Fresh ATHENA_HOME must run setup even if ambient credentials exist."""
+        from athena_cli.main import cmd_chat
+
+        args = _make_chat_args()
+
+        with (
+            patch("athena_cli.main._is_first_run_config_missing", return_value=True),
+            patch("athena_cli.main._has_any_provider_configured", return_value=True) as mock_has_provider,
+            patch("athena_cli.main.cmd_setup") as mock_setup,
+            patch("sys.stdin") as mock_stdin,
+        ):
+            mock_stdin.isatty.return_value = True
+            cmd_chat(args)
+
+        mock_has_provider.assert_not_called()
+        mock_setup.assert_called_once_with(args)
+
+    def test_chat_missing_config_headless_prints_guidance(self, capsys):
+        """Fresh ATHENA_HOME without a TTY should print setup guidance and exit."""
+        from athena_cli.main import cmd_chat
+
+        args = _make_chat_args()
+
+        with (
+            patch("athena_cli.main._is_first_run_config_missing", return_value=True),
+            patch("athena_cli.main.cmd_setup") as mock_setup,
+            patch("sys.stdin") as mock_stdin,
+        ):
+            mock_stdin.isatty.return_value = False
+            with pytest.raises(SystemExit) as exc:
+                cmd_chat(args)
+
+        assert exc.value.code == 1
+        mock_setup.assert_not_called()
+        out = capsys.readouterr().out
+        assert "this Athena profile has not been set up yet" in out
+        assert "athena config set model.provider custom" in out
+
     def test_main_accepts_tts_setup_section(self, monkeypatch):
         """`athena setup tts` should parse and dispatch like other setup sections."""
         from athena_cli import main as main_mod
@@ -159,3 +198,19 @@ class TestNonInteractiveSetup:
         main_mod.main()
 
         assert received["section"] == "tts"
+
+    def test_main_accepts_x_twitter_setup_section(self, monkeypatch):
+        """`athena setup x-twitter` should parse and dispatch."""
+        from athena_cli import main as main_mod
+
+        received = {}
+
+        def fake_cmd_setup(args):
+            received["section"] = args.section
+
+        monkeypatch.setattr(main_mod, "cmd_setup", fake_cmd_setup)
+        monkeypatch.setattr("sys.argv", ["athena", "setup", "x-twitter"])
+
+        main_mod.main()
+
+        assert received["section"] == "x-twitter"

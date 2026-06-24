@@ -887,6 +887,21 @@ def _has_any_provider_configured() -> bool:
     return False
 
 
+def _is_first_run_config_missing() -> bool:
+    """Return True when this ATHENA_HOME has no user config yet.
+
+    Ambient shell credentials (for example OPENAI_API_KEY) should not skip the
+    first-run wizard for a fresh profile: users still need to choose defaults,
+    tools, terminal behavior, and other Athena-specific settings.
+    """
+    try:
+        from athena_cli.config import get_config_path
+
+        return not get_config_path().exists()
+    except Exception:
+        return False
+
+
 def _session_browse_picker(sessions: list) -> Optional[str]:
     """Interactive curses-based session browser with live search filtering.
 
@@ -2263,7 +2278,33 @@ def cmd_chat(args):
     except Exception:
         pass
 
-    # First-run guard: check if any provider is configured before launching
+    # First-run guard: a missing config.yaml means this ATHENA_HOME has not
+    # been initialized yet. Run setup even if ambient shell credentials exist,
+    # otherwise fresh isolated homes can skip onboarding unexpectedly.
+    first_run_config_missing = _is_first_run_config_missing()
+    if first_run_config_missing:
+        print()
+        print("It looks like this Athena profile has not been set up yet.")
+        print()
+        print("  Run:  athena setup")
+        print()
+
+        from athena_cli.setup import (
+            is_interactive_stdin,
+            print_noninteractive_setup_guidance,
+        )
+
+        if not is_interactive_stdin():
+            print_noninteractive_setup_guidance(
+                "No interactive TTY detected for first-run setup."
+            )
+            sys.exit(1)
+
+        cmd_setup(args)
+        return
+
+    # Existing-profile guard: if config exists but no provider is usable, offer
+    # setup rather than entering a chat that will fail during agent init.
     if not _has_any_provider_configured():
         print()
         print(
@@ -2966,8 +3007,13 @@ def select_provider_and_model(args=None):
     # row ("Kimi / Moonshot ▸"); picking it opens a member sub-picker that
     # resolves back to a concrete slug, so the dispatch chain below is
     # unchanged. Custom providers and the trailing actions stay flat.
-    canonical_descs = {p.slug: p.tui_desc for p in CANONICAL_PROVIDERS}
-    grouped_rows = group_providers([p.slug for p in CANONICAL_PROVIDERS])
+    visible_provider_slugs = [
+        p.slug for p in CANONICAL_PROVIDERS if p.slug != "nous"
+    ]
+    canonical_descs = {
+        p.slug: p.tui_desc for p in CANONICAL_PROVIDERS if p.slug in visible_provider_slugs
+    }
+    grouped_rows = group_providers(visible_provider_slugs)
 
     # The group/slug that should be pre-selected: the active provider's group
     # if it's grouped, otherwise the active slug itself.
@@ -4793,6 +4839,52 @@ def _run_npm_install_deterministic(
     )
 
 
+def _node_version_tuple(raw: str) -> tuple[int, int, int] | None:
+    text = (raw or "").strip()
+    if text.startswith("v"):
+        text = text[1:]
+    parts = text.split(".")
+    if len(parts) < 2:
+        return None
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+        patch = int(parts[2]) if len(parts) > 2 else 0
+    except ValueError:
+        return None
+    return major, minor, patch
+
+
+def _desktop_node_version_supported(node: str) -> tuple[bool, str]:
+    """Return whether Node can build the desktop workspace.
+
+    Vite/Rolldown and Electron tooling currently require Node >=20.19.0 or
+    >=22.12.0. Older Node versions can install partial optional deps and then
+    fail with misleading native-binding errors, so gate before npm install.
+    """
+    try:
+        result = subprocess.run(
+            [node, "--version"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=5,
+        )
+    except Exception:
+        return False, ""
+    version = (result.stdout or "").strip()
+    parsed = _node_version_tuple(version)
+    if parsed is None:
+        return False, version
+    major, minor, patch = parsed
+    supported = (major == 20 and (minor, patch) >= (19, 0)) or (
+        major == 22 and (minor, patch) >= (12, 0)
+    ) or major >= 23
+    return supported, version
+
+
 def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     """Build the web UI frontend if npm is available.
 
@@ -5479,6 +5571,17 @@ def cmd_gui(args: argparse.Namespace):
         if not npm:
             print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.")
             print("Install Node.js, then run:  athena gui")
+            sys.exit(1)
+        node = find_node_executable("node")
+        node_ok, node_version = _desktop_node_version_supported(node or "node")
+        if not node_ok:
+            shown = node_version or "unknown"
+            print(
+                "✗ Desktop GUI requires Node.js >=20.19.0 or >=22.12.0 "
+                f"(found {shown})."
+            )
+            print("  Upgrade Node.js, then retry:  athena gui")
+            print("  With nvm, for example:       nvm install 22 && nvm use 22")
             sys.exit(1)
     else:
         npm = None

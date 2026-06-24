@@ -36,6 +36,15 @@ def _make_desktop_tree(tmp_path: Path) -> Path:
     return root
 
 
+@pytest.fixture(autouse=True)
+def _desktop_node_version_ok(monkeypatch):
+    monkeypatch.setattr(
+        cli_main,
+        "_desktop_node_version_supported",
+        lambda _node: (True, "v22.12.0"),
+    )
+
+
 def _make_packaged_executable(root: Path, monkeypatch, platform: str = "darwin") -> Path:
     monkeypatch.setattr(cli_main.sys, "platform", platform)
     desktop_dir = root / "apps" / "desktop"
@@ -119,6 +128,27 @@ def test_gui_exits_when_npm_missing(tmp_path, monkeypatch, capsys):
 
     assert exc.value.code == 1
     assert "npm was not found" in capsys.readouterr().out
+
+
+def test_gui_exits_before_install_when_node_version_is_too_old(tmp_path, monkeypatch, capsys):
+    root = _make_desktop_tree(tmp_path)
+    monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
+    monkeypatch.setattr(
+        cli_main,
+        "_desktop_node_version_supported",
+        lambda _node: (False, "v20.18.3"),
+    )
+
+    with patch("athena_cli.main.shutil.which", return_value="/usr/bin/npm"), \
+         patch("athena_cli.main._run_npm_install_deterministic") as mock_install, \
+         pytest.raises(SystemExit) as exc:
+        cli_main.cmd_gui(_ns())
+
+    assert exc.value.code == 1
+    mock_install.assert_not_called()
+    out = capsys.readouterr().out
+    assert "Desktop GUI requires Node.js >=20.19.0 or >=22.12.0" in out
+    assert "v20.18.3" in out
 
 
 def test_gui_skip_build_requires_existing_packaged_app(tmp_path, monkeypatch, capsys):

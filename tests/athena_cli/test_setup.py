@@ -234,6 +234,54 @@ def test_setup_gateway_in_container_shows_docker_guidance(monkeypatch, capsys):
     assert "restart" in out.lower()
 
 
+def test_setup_telegram_manual_persists_token_allowlist_and_home(monkeypatch):
+    """Manual Telegram setup must write token, allowlist, and home channel."""
+    saved = {}
+    token = "1234567890:" + "A" * 35
+
+    monkeypatch.setattr(setup_mod, "get_env_value", lambda key: "")
+    monkeypatch.setattr(setup_mod, "save_env_value", lambda key, value: saved.setdefault(key, value))
+    monkeypatch.setattr(setup_mod, "_is_valid_telegram_bot_token", lambda value: bool(value))
+    prompt_values = iter(["2", token, "123456789"])
+    monkeypatch.setattr(setup_mod, "prompt", lambda *args, **kwargs: next(prompt_values))
+    monkeypatch.setattr(setup_mod, "prompt_yes_no", lambda *args, **kwargs: True)
+
+    setup_mod._setup_telegram()
+
+    assert saved["TELEGRAM_BOT_TOKEN"] == token
+    assert saved["TELEGRAM_ALLOWED_USERS"] == "123456789"
+    assert saved["TELEGRAM_HOME_CHANNEL"] == "123456789"
+
+
+def test_setup_x_twitter_news_saves_only_non_secret_metadata(monkeypatch, capsys):
+    config = {}
+    prompt_values = iter(["athena-market-news", "@athena_user"])
+
+    monkeypatch.setattr(setup_mod, "prompt_yes_no", lambda *args, **kwargs: True)
+    monkeypatch.setattr(setup_mod, "prompt", lambda *args, **kwargs: next(prompt_values))
+    monkeypatch.setattr(setup_mod.shutil, "which", lambda name: "/usr/local/bin/xurl" if name == "xurl" else None)
+
+    setup_mod.setup_x_twitter_news(config)
+
+    assert config["social"]["xurl"] == {
+        "app_name": "athena-market-news",
+        "username": "athena_user",
+    }
+    out = capsys.readouterr().out
+    assert "~/.xurl" in out
+    assert "<BEARER_TOKEN>" in out
+    assert "athena-market-news" in out
+
+
+def test_setup_x_twitter_news_skip_does_not_mutate_config(monkeypatch):
+    config = {}
+    monkeypatch.setattr(setup_mod, "prompt_yes_no", lambda *args, **kwargs: False)
+
+    setup_mod.setup_x_twitter_news(config)
+
+    assert config == {}
+
+
 def test_setup_syncs_custom_provider_removal_from_disk(tmp_path, monkeypatch):
     """Removing the last custom provider in model setup should persist."""
     monkeypatch.setenv("ATHENA_HOME", str(tmp_path))
@@ -348,6 +396,23 @@ def test_select_provider_and_model_warns_if_named_custom_provider_disappears(
 
     out = capsys.readouterr().out
     assert "selected saved custom provider is no longer available" in out
+
+
+def test_select_provider_and_model_hides_nous_portal_from_picker(tmp_path, monkeypatch):
+    monkeypatch.setenv("ATHENA_HOME", str(tmp_path))
+    _clear_provider_env(monkeypatch)
+
+    def fake_prompt_provider_choice(choices, default=0):
+        assert not any("Nous Portal" in label for label in choices)
+        assert not any(label.lower().startswith("nous") for label in choices)
+        return next(i for i, label in enumerate(choices) if label == "Leave unchanged")
+
+    monkeypatch.setattr("athena_cli.auth.resolve_provider", lambda provider: None)
+    monkeypatch.setattr("athena_cli.main._prompt_provider_choice", fake_prompt_provider_choice)
+
+    from athena_cli.main import select_provider_and_model
+
+    select_provider_and_model()
 
 
 def test_select_provider_and_model_accepts_named_provider_from_providers_section(

@@ -147,6 +147,8 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     "platform.feishu": (
         "lark-oapi==1.5.3",
         "qrcode==7.4.2",
+        # lark-oapi still imports pkg_resources for namespace setup.
+        "setuptools==81.0.0",
     ),
     # WeCom callback-mode adapter — parses untrusted XML POST bodies. Pulls
     # defusedxml only; aiohttp/httpx are core dependencies of every messaging

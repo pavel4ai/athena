@@ -114,6 +114,7 @@ class TestExistingInstallDefault:
                 agent="athena_cli.setup.setup_agent_settings",
                 gateway="athena_cli.setup.setup_gateway",
                 tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
@@ -129,6 +130,7 @@ class TestExistingInstallDefault:
         m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
 
     def test_reconfigure_flag_is_backwards_compat_noop(self, existing_install):
         """`athena setup --reconfigure` behaves the same as bare `athena setup`."""
@@ -143,6 +145,7 @@ class TestExistingInstallDefault:
                 agent="athena_cli.setup.setup_agent_settings",
                 gateway="athena_cli.setup.setup_gateway",
                 tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
@@ -153,6 +156,7 @@ class TestExistingInstallDefault:
         m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
 
 
 class TestQuickFlag:
@@ -170,6 +174,7 @@ class TestQuickFlag:
                 agent="athena_cli.setup.setup_agent_settings",
                 gateway="athena_cli.setup.setup_gateway",
                 tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
@@ -181,6 +186,7 @@ class TestQuickFlag:
         m["agent"].assert_not_called()
         m["gateway"].assert_not_called()
         m["tools"].assert_not_called()
+        m["x_twitter"].assert_not_called()
 
 
 class TestFreshInstall:
@@ -193,13 +199,28 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("athena_cli.setup.prompt_choice", {"return_value": 0}),
-                first="athena_cli.setup._run_first_time_quick_setup",
+                model="athena_cli.setup.setup_model_provider",
+                terminal="athena_cli.setup.setup_terminal_backend",
+                gateway="athena_cli.setup.setup_gateway",
+                tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
+                blank="athena_cli.setup._run_blank_slate_setup",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
 
-        m["prompt"].assert_called_once()  # quick-vs-full prompt
-        m["first"].assert_called_once()
+        m["prompt"].assert_called_once()  # full-vs-blank prompt
+        choices = m["prompt"].call_args.args[1]
+        assert choices == [
+            "Full setup — configure every provider, tool & option yourself (bring your own keys)",
+            "Blank Slate — everything off except the bare minimum; opt in to each capability",
+        ]
+        m["model"].assert_called_once()
+        m["terminal"].assert_called_once()
+        m["gateway"].assert_called_once()
+        m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
+        m["blank"].assert_not_called()
 
     def test_reconfigure_on_fresh_install_falls_through(self, fresh_install):
         args = _make_setup_args(reconfigure=True)
@@ -208,13 +229,21 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("athena_cli.setup.prompt_choice", {"return_value": 0}),
-                first="athena_cli.setup._run_first_time_quick_setup",
+                model="athena_cli.setup.setup_model_provider",
+                terminal="athena_cli.setup.setup_terminal_backend",
+                gateway="athena_cli.setup.setup_gateway",
+                tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
 
         m["prompt"].assert_called_once()
-        m["first"].assert_called_once()
+        m["model"].assert_called_once()
+        m["terminal"].assert_called_once()
+        m["gateway"].assert_called_once()
+        m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
 
     def test_quick_on_fresh_install_falls_through(self, fresh_install):
         args = _make_setup_args(quick=True)
@@ -223,13 +252,21 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("athena_cli.setup.prompt_choice", {"return_value": 0}),
-                first="athena_cli.setup._run_first_time_quick_setup",
+                model="athena_cli.setup.setup_model_provider",
+                terminal="athena_cli.setup.setup_terminal_backend",
+                gateway="athena_cli.setup.setup_gateway",
+                tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
 
         m["prompt"].assert_called_once()
-        m["first"].assert_called_once()
+        m["model"].assert_called_once()
+        m["terminal"].assert_called_once()
+        m["gateway"].assert_called_once()
+        m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
 
 
 class TestArgparse:

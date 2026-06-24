@@ -7,6 +7,7 @@ Modular wizard with independently-runnable sections:
   3. Agent Settings — iterations, compression, session reset
   4. Messaging Platforms — connect Telegram, Discord, etc.
   5. Tools — configure TTS, web search, image generation, etc.
+  6. X/Twitter News — configure xurl for news/search
 
 Config files are stored in ~/.athena/ for easy access.
 """
@@ -383,7 +384,7 @@ def _print_setup_summary(config: dict, athena_home):
 
     # Web tools (Exa, Parallel, Firecrawl, or Tavily)
     if subscription_features.web.managed_by_nous:
-        tool_status.append(("Web Search & Extract (Nous subscription)", True, None))
+        tool_status.append(("Web Search & Extract (managed subscription)", True, None))
     elif subscription_features.web.available:
         label = "Web Search & Extract"
         if subscription_features.web.current_provider:
@@ -395,7 +396,7 @@ def _print_setup_summary(config: dict, athena_home):
     # Browser tools (local Chromium, Camofox, Browserbase, Browser Use, or Firecrawl)
     browser_provider = subscription_features.browser.current_provider
     if subscription_features.browser.managed_by_nous:
-        tool_status.append(("Browser Automation (Nous Browser Use)", True, None))
+        tool_status.append(("Browser Automation (managed Browser Use)", True, None))
     elif subscription_features.browser.available:
         label = "Browser Automation"
         if browser_provider:
@@ -422,10 +423,10 @@ def _print_setup_summary(config: dict, athena_home):
             ("Browser Automation", False, missing_browser_hint)
         )
 
-    # Image generation — FAL (direct or via Nous), or any plugin-registered
+    # Image generation — FAL or any plugin-registered
     # provider (OpenAI, etc.)
     if subscription_features.image_gen.managed_by_nous:
-        tool_status.append(("Image Generation (Nous subscription)", True, None))
+        tool_status.append(("Image Generation (managed subscription)", True, None))
     elif subscription_features.image_gen.available:
         tool_status.append(("Image Generation", True, None))
     else:
@@ -457,7 +458,7 @@ def _print_setup_summary(config: dict, athena_home):
     # Only show the row when a plugin reports available so we don't badger
     # users who don't care about video gen with a "missing" status line.
     if subscription_features.video_gen.managed_by_nous:
-        tool_status.append(("Video Generation (FAL via Nous subscription)", True, None))
+        tool_status.append(("Video Generation (FAL via managed subscription)", True, None))
     else:
         try:
             from agent.video_gen_registry import list_providers as _list_video_providers
@@ -479,7 +480,7 @@ def _print_setup_summary(config: dict, athena_home):
     # TTS — show configured provider
     tts_provider = cfg_get(config, "tts", "provider", default="edge")
     if subscription_features.tts.managed_by_nous:
-        tool_status.append(("Text-to-Speech (OpenAI via Nous subscription)", True, None))
+        tool_status.append(("Text-to-Speech (OpenAI via managed subscription)", True, None))
     elif tts_provider == "elevenlabs" and get_env_value("ELEVENLABS_API_KEY"):
         tool_status.append(("Text-to-Speech (ElevenLabs)", True, None))
     elif tts_provider == "openai" and (
@@ -514,14 +515,14 @@ def _print_setup_summary(config: dict, athena_home):
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
     if subscription_features.modal.managed_by_nous:
-        tool_status.append(("Modal Execution (Nous subscription)", True, None))
+        tool_status.append(("Modal Execution (managed subscription)", True, None))
     elif cfg_get(config, "terminal", "backend") == "modal":
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
             tool_status.append(("Modal Execution", False, "run 'athena setup terminal'"))
     elif managed_nous_tools_enabled() and subscription_features.nous_auth_present:
-        tool_status.append(("Modal Execution (optional via Nous subscription)", True, None))
+        tool_status.append(("Modal Execution (optional via managed subscription)", True, None))
 
     # Home Assistant
     if get_env_value("HASS_TOKEN"):
@@ -911,9 +912,6 @@ def _setup_tts_provider(config: dict):
 
     choices = []
     providers = []
-    if managed_nous_tools_enabled() and subscription_features.nous_auth_present:
-        choices.append("Nous Subscription (managed OpenAI TTS, billed to your subscription)")
-        providers.append("nous-openai")
     choices.extend(
         [
             "Edge TTS (free, cloud-based, no setup needed)",
@@ -1236,7 +1234,7 @@ def setup_terminal_backend(config: dict):
         use_managed_modal = False
         if managed_modal_available:
             modal_choices = [
-                "Use my Nous subscription",
+                "Use managed subscription",
                 "Use my own Modal account",
             ]
             if modal_mode == "managed":
@@ -2183,6 +2181,82 @@ def setup_tools(config: dict, first_install: bool = False):
 
 
 # =============================================================================
+# Final Section: X/Twitter News via xurl
+# =============================================================================
+
+
+def setup_x_twitter_news(config: dict):
+    """Guide X/Twitter news setup through xurl without handling secrets.
+
+    xurl stores credentials in ``~/.xurl``. Athena must never read or print that
+    file; this setup step only records non-secret app metadata and prints the
+    terminal commands the user should run directly.
+    """
+    print_header("X/Twitter News (xurl)")
+    print_info("X/Twitter can be a major source of market and AI infrastructure news.")
+    print_info("Athena uses the official xurl CLI for X API access.")
+    print()
+    print_warning("Do not paste X/Twitter tokens into Athena chat.")
+    print_warning("Do not ask Athena to read or print ~/.xurl.")
+    print_info("Enter secrets only in terminal prompts or the X developer dashboard.")
+    print()
+
+    if not prompt_yes_no("Configure X/Twitter news access with xurl now?", True):
+        print_info("Skipping X/Twitter setup. Run `athena setup x-twitter` later.")
+        return
+
+    xurl_path = shutil.which("xurl")
+    if xurl_path:
+        print_success(f"xurl found: {xurl_path}")
+    else:
+        print_warning("xurl was not found on PATH.")
+        print_info("Install it directly in your terminal:")
+        print_info("  curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh -o /tmp/xurl-install.sh")
+        print_info("  less /tmp/xurl-install.sh")
+        print_info("  bash /tmp/xurl-install.sh")
+        print_info('  export PATH="$HOME/.local/bin:$PATH"')
+        print_info("  xurl --help")
+        print()
+        if not prompt_yes_no("Continue with app metadata and auth instructions?", False):
+            return
+
+    print()
+    print_info("Create or open your X developer app:")
+    print_info("  https://developer.x.com/en/portal/dashboard")
+    print()
+    app_name = prompt("X app name (non-secret, optional)")
+    username = prompt("X username/handle (non-secret, optional)")
+
+    if app_name or username:
+        x_cfg = config.setdefault("social", {}).setdefault("xurl", {})
+        if app_name:
+            x_cfg["app_name"] = app_name
+        if username:
+            x_cfg["username"] = username.lstrip("@")
+        print_success("Saved non-secret xurl app metadata to config.yaml")
+
+    app = app_name or "<X_APP_NAME>"
+    user = (username.lstrip("@") if username else "<X_USERNAME>")
+
+    print()
+    print_info("Recommended read/search/news setup: app-only Bearer token auth.")
+    print_info("Run these yourself in the terminal; replace placeholders there, not in chat:")
+    print()
+    print(color("  xurl auth apps add " + app, Colors.DIM))
+    print(color("  xurl --app " + app + " auth app --bearer-token <BEARER_TOKEN>", Colors.DIM))
+    print(color("  xurl auth default " + app + " " + user, Colors.DIM))
+    print(color("  xurl auth status", Colors.DIM))
+    print()
+    print_info("Expected `xurl auth status`: your app should show `bearer: ✓`.")
+    print_info("Test a read-only search:")
+    print(color(f'  xurl --app {app} --auth app search "AI news lang:en" -n 5', Colors.DIM))
+    print()
+    print_info("If credentials are under another app, either pass `--app " + app + "`")
+    print_info("or run: `xurl auth default " + app + " " + user + "`")
+    print_info("The bundled `xurl` skill documents safe future usage.")
+
+
+# =============================================================================
 # Post-Migration Section Skip Logic
 # =============================================================================
 
@@ -2590,6 +2664,7 @@ SETUP_SECTIONS = [
     ("terminal", "Terminal Backend", setup_terminal_backend),
     ("gateway", "Messaging Platforms (Gateway)", setup_gateway),
     ("tools", "Tools", setup_tools),
+    ("x-twitter", "X/Twitter News (xurl)", setup_x_twitter_news),
     ("agent", "Agent Settings", setup_agent_settings),
 ]
 
@@ -2681,13 +2756,14 @@ def _run_portal_one_shot(config: dict) -> None:
 def run_setup_wizard(args):
     """Run the interactive setup wizard.
 
-    Supports full, quick, and section-specific setup:
-      athena setup           — full or quick (auto-detected)
+    Supports full, blank-slate, and section-specific setup:
+      athena setup           — full or blank-slate setup
       athena setup model     — just model/provider
       athena setup tts       — just text-to-speech
       athena setup terminal  — just terminal backend
       athena setup gateway   — just messaging platforms
       athena setup tools     — just tool configuration
+      athena setup x-twitter — just X/Twitter xurl guidance
       athena setup agent     — just agent settings
     """
     from athena_cli.config import is_managed, managed_error
@@ -2853,17 +2929,13 @@ def run_setup_wizard(args):
         setup_mode = prompt_choice(
             "How would you like to set up Athena?",
             [
-                "Quick Setup (Nous Portal) — free OAuth login, no API keys, model + tools (recommended)",
                 "Full setup — configure every provider, tool & option yourself (bring your own keys)",
                 "Blank Slate — everything off except the bare minimum; opt in to each capability",
             ],
             0,
         )
 
-        if setup_mode == 0:
-            _run_first_time_quick_setup(config, athena_home, is_existing)
-            return
-        if setup_mode == 2:
+        if setup_mode == 1:
             _run_blank_slate_setup(config, athena_home, is_existing)
             return
 
@@ -2904,6 +2976,9 @@ def run_setup_wizard(args):
     if not (migration_ran and _skip_configured_section(config, "tools", "Tools")):
         setup_tools(config, first_install=not is_existing)
 
+    # Section 6: X/Twitter News
+    setup_x_twitter_news(config)
+
     # Save and show summary
     save_config(config)
     if _backup_path and _backup_path.exists():
@@ -2911,80 +2986,6 @@ def run_setup_wizard(args):
         print_info("If setup changed a value you customized, restore it with:")
         print_info(f"  cp {_backup_path} {config_path}")
     _print_setup_summary(config, athena_home)
-
-
-def _run_first_time_quick_setup(config: dict, athena_home, is_existing: bool):
-    """Streamlined first-time setup via Nous Portal: OAuth, model, terminal & messaging.
-
-    Routes straight to the Nous Portal provider — runs the device-code OAuth
-    login, picks a Nous model, then configures the terminal backend and (optionally)
-    a messaging platform. Applies sensible defaults for everything else (agent
-    settings, tools); the user can customize later via ``athena setup <section>``
-    or switch providers with ``athena model``.
-    """
-    from athena_cli.config import load_config
-
-    # Step 1: Nous Portal — OAuth login + model selection.
-    # _model_flow_nous() handles both the logged-out path (device-code OAuth,
-    # which selects a model internally) and the already-logged-in path (curated
-    # Nous model picker). Provider is set to "nous" by the login/model save.
-    print()
-    print_header("Nous Portal")
-    print_info("One subscription, 300+ models, plus the Tool Gateway:")
-    print_info("  web search, image generation, TTS, browser automation.")
-    print_info("Sign up: https://portal.nousresearch.com/manage-subscription")
-    print()
-    try:
-        from athena_cli.main import _model_flow_nous
-        _model_flow_nous(config)
-    except (KeyboardInterrupt, EOFError):
-        print()
-        print_info("Nous Portal setup cancelled.")
-    except Exception as exc:
-        logger.debug("_model_flow_nous error during quick setup: %s", exc)
-        print_warning(f"Nous Portal setup encountered an error: {exc}")
-        print_info("You can try again later with: athena model")
-
-    # Re-sync the wizard's config dict from disk — _model_flow_nous (and the
-    # underlying login/model save) write via their own load/save cycle, and the
-    # wizard's later save_config(config) must not clobber those values (#4172).
-    _refreshed = load_config()
-    config.clear()
-    config.update(_refreshed)
-
-    # Step 2: Terminal Backend — where commands run is a core decision
-    setup_terminal_backend(config)
-
-    # Step 3: Apply defaults for everything else
-    _apply_default_agent_settings(config)
-
-    save_config(config)
-
-    # Step 4: Offer messaging gateway setup
-    print()
-    gateway_choice = prompt_choice(
-        "Connect a messaging platform? (Telegram, Discord, etc.)",
-        [
-            "Set up messaging now (recommended)",
-            "Skip — set up later with 'athena setup gateway'",
-        ],
-        0,
-    )
-
-    if gateway_choice == 0:
-        setup_gateway(config)
-        save_config(config)
-
-    print()
-    print_success("Setup complete! You're ready to go.")
-    print()
-    print_info("  Configure all settings:    athena setup")
-    if gateway_choice != 0:
-        print_info("  Connect Telegram/Discord:  athena setup gateway")
-    print()
-
-    _print_setup_summary(config, athena_home)
-
 
 def _blank_slate_minimal_toolsets(config: dict):
     """Write the minimal toolset state for a Blank Slate install.
@@ -3110,6 +3111,7 @@ def _run_blank_slate_setup(config: dict, athena_home, is_existing: bool):
     )
 
     if path == 0:
+        setup_x_twitter_news(config)
         save_config(config)
         # Blank Slate means no bundled skills; record the opt-out so future
         # `athena update` runs don't re-inject them.
@@ -3203,6 +3205,8 @@ def _blank_slate_walkthrough(config: dict, athena_home):
     print()
     if prompt_yes_no("Connect a messaging platform (Telegram, Discord, …)?", default=False):
         setup_gateway(config)
+
+    setup_x_twitter_news(config)
 
     save_config(config)
 

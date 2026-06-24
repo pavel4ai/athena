@@ -6,6 +6,7 @@ import os
 import tempfile
 import time
 import unittest
+import warnings
 from collections import OrderedDict
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,7 +16,23 @@ from unittest.mock import AsyncMock, Mock, patch
 from gateway.platforms.base import ProcessingOutcome
 
 try:
-    import lark_oapi
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r"pkg_resources is deprecated as an API.*",
+            category=UserWarning,
+        )
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Deprecated call to `pkg_resources\.declare_namespace.*",
+            category=DeprecationWarning,
+        )
+        warnings.filterwarnings(
+            "ignore",
+            message=r"websockets\.(InvalidStatusCode|legacy) is deprecated.*",
+            category=DeprecationWarning,
+        )
+        import lark_oapi
     _HAS_LARK_OAPI = True
 except ImportError:
     _HAS_LARK_OAPI = False

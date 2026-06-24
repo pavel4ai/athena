@@ -318,6 +318,26 @@ class TestEnsureInstalled:
         _tirith_mod._resolved_path = None
 
     @patch("tools.tirith_security._load_security_config")
+    def test_not_found_reports_background_install_in_progress(self, mock_cfg):
+        mock_cfg.return_value = {"tirith_enabled": True, "tirith_path": "tirith",
+                                 "tirith_timeout": 5, "tirith_fail_open": True}
+        _tirith_mod._resolved_path = None
+        with patch("tools.tirith_security.shutil.which", return_value=None), \
+             patch("tools.tirith_security._athena_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
+             patch("tools.tirith_security.threading.Thread") as MockThread:
+            mock_thread = MagicMock()
+            mock_thread.is_alive.return_value = True
+            MockThread.return_value = mock_thread
+
+            assert ensure_installed() is None
+            assert _tirith_mod.is_install_in_progress() is True
+
+        _tirith_mod._install_thread = None
+        assert _tirith_mod.is_install_in_progress() is False
+        _tirith_mod._resolved_path = None
+
+    @patch("tools.tirith_security._load_security_config")
     def test_startup_prefetch_can_suppress_install_failure_logs(self, mock_cfg):
         mock_cfg.return_value = {"tirith_enabled": True, "tirith_path": "tirith",
                                  "tirith_timeout": 5, "tirith_fail_open": True}

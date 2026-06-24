@@ -1056,8 +1056,8 @@ class TestDoctorXaiOAuthStatus:
     """The ◆ Auth Providers section must show xAI OAuth login state.
 
     xAI OAuth is checked in a *separate* try/except block so that an import
-    failure (or runtime exception) cannot silence the Nous / Codex / Gemini /
-    MiniMax rows that were already printed above it.
+    failure (or runtime exception) cannot silence the Codex / MiniMax rows
+    that were already printed above it.
     """
 
     def _run(self, monkeypatch, tmp_path, *, xai_auth_fn) -> str:
@@ -1166,7 +1166,7 @@ class TestDoctorXaiOAuthStatus:
         assert "Auth Providers" in out
 
     def test_import_failure_does_not_affect_other_providers(self, monkeypatch, tmp_path):
-        """Nous / Codex / Gemini / MiniMax rows must survive an xAI import failure."""
+        """Codex / MiniMax rows must survive an xAI import failure."""
         home = tmp_path / ".athena"
         home.mkdir(parents=True, exist_ok=True)
         (home / "config.yaml").write_text("memory: {}\n", encoding="utf-8")
@@ -1193,8 +1193,9 @@ class TestDoctorXaiOAuthStatus:
         with contextlib.redirect_stdout(buf):
             doctor_mod.run_doctor(Namespace(fix=False))
         out = buf.getvalue()
-        assert "Nous Portal auth" in out
-        assert "logged in" in out
+        assert "Nous Portal auth" not in out
+        assert "OpenAI Codex auth" in out
+        assert "MiniMax OAuth" in out
 
     def test_function_raises_does_not_crash_doctor(self, monkeypatch, tmp_path):
         """A runtime exception from get_xai_oauth_auth_status must be swallowed."""

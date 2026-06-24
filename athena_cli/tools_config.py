@@ -249,16 +249,6 @@ TOOL_CATEGORIES = {
                 "tts_provider": "edge",
             },
             {
-                "name": "Nous Subscription",
-                "badge": "subscription",
-                "tag": "Managed OpenAI TTS billed to your subscription",
-                "env_vars": [],
-                "tts_provider": "openai",
-                "requires_nous_auth": True,
-                "managed_nous_feature": "tts",
-                "override_env_vars": ["VOICE_TOOLS_OPENAI_KEY", "OPENAI_API_KEY"],
-            },
-            {
                 "name": "OpenAI TTS",
                 "badge": "paid",
                 "tag": "High quality voices",
@@ -329,22 +319,10 @@ TOOL_CATEGORIES = {
         # plugins.web.<vendor>.provider via _plugin_web_search_providers()
         # in _visible_providers(). Only non-provider UX setup-flow rows
         # for the firecrawl backend are listed here:
-        #   - "Nous Subscription" — managed Firecrawl billed via Nous
-        #     subscription (requires_nous_auth + override_env_vars).
         #   - "Firecrawl Self-Hosted" — points firecrawl at a private
         #     Docker instance via FIRECRAWL_API_URL only.
         # See PR #25182 for the migration rationale.
         "providers": [
-            {
-                "name": "Nous Subscription",
-                "badge": "subscription",
-                "tag": "Managed Firecrawl billed to your subscription",
-                "web_backend": "firecrawl",
-                "env_vars": [],
-                "requires_nous_auth": True,
-                "managed_nous_feature": "web",
-                "override_env_vars": ["FIRECRAWL_API_KEY", "FIRECRAWL_API_URL"],
-            },
             {
                 "name": "Firecrawl Self-Hosted",
                 "badge": "free · self-hosted",
@@ -363,48 +341,14 @@ TOOL_CATEGORIES = {
         # OpenAI Codex, and xAI are injected at runtime from each
         # ``plugins.image_gen.<vendor>`` package via
         # ``_plugin_image_gen_providers()`` in ``_visible_providers``.
-        # Only non-provider UX setup-flow rows remain here:
-        #   - "Nous Subscription" — managed FAL billed via the Nous
-        #     subscription (requires_nous_auth + override_env_vars).
-        #     Uses the fal plugin as the underlying backend but has a
-        #     distinct setup UX.
-        # Mirrors the shape browser/video_gen ship today.
-        "providers": [
-            {
-                "name": "Nous Subscription",
-                "badge": "subscription",
-                "tag": "Managed FAL image generation billed to your subscription",
-                "env_vars": [],
-                "requires_nous_auth": True,
-                "managed_nous_feature": "image_gen",
-                "override_env_vars": ["FAL_KEY"],
-                "imagegen_backend": "fal",
-            },
-        ],
+        "providers": [],
     },
     "video_gen": {
         "name": "Video Generation",
         "icon": "🎬",
-        # "Nous Subscription" row mirrors the image_gen pattern — managed
-        # FAL video generation billed via the Nous Portal.  Plugin-backed
-        # provider rows (FAL BYOK, xAI, …) are injected at runtime by
-        # ``_plugin_video_gen_providers()`` in ``_visible_providers``.
-        "providers": [
-            {
-                "name": "Nous Subscription",
-                "badge": "subscription",
-                "tag": "Managed FAL video generation billed to your subscription",
-                "env_vars": [],
-                "requires_nous_auth": True,
-                "managed_nous_feature": "video_gen",
-                "override_env_vars": ["FAL_KEY"],
-                # The underlying plugin backend — when the user picks
-                # "Nous Subscription" we set video_gen.provider = "fal"
-                # and video_gen.use_gateway = True so the FAL plugin
-                # routes through the managed queue gateway.
-                "video_gen_plugin_name": "fal",
-            },
-        ],
+        # Plugin-backed provider rows (FAL BYOK, xAI, …) are injected at
+        # runtime by ``_plugin_video_gen_providers()`` in ``_visible_providers``.
+        "providers": [],
     },
     "x_search": {
         "name": "X (Twitter) Search",
@@ -446,14 +390,8 @@ TOOL_CATEGORIES = {
         # injected at runtime from plugins.browser.<vendor>.provider via
         # _plugin_browser_providers() in _visible_providers(). Only
         # non-provider UX setup-flow rows remain here. "Local Browser" is
-        # listed FIRST so it is the default-highlighted (index 0) choice on a
-        # fresh install — pressing Enter must land on the free, no-key local
-        # backend, never on the paid Nous Subscription gateway row:
+        # the default-highlighted (index 0) choice on a fresh install:
         #   - "Local Browser" — non-cloud option, no CloudBrowserProvider.
-        #   - "Nous Subscription (Browser Use cloud)" — managed Browser Use
-        #     billed via Nous subscription (requires_nous_auth +
-        #     override_env_vars). Uses the browser-use plugin as the
-        #     underlying backend but has a distinct setup UX.
         #   - "Camofox" — anti-detection local Firefox; short-circuits the
         #     cloud-provider dispatch path via _is_camofox_mode().
         "providers": [
@@ -463,17 +401,6 @@ TOOL_CATEGORIES = {
                 "tag": "Headless Chromium, no API key needed",
                 "env_vars": [],
                 "browser_provider": "local",
-                "post_setup": "agent_browser",
-            },
-            {
-                "name": "Nous Subscription (Browser Use cloud)",
-                "badge": "subscription",
-                "tag": "Managed Browser Use billed to your subscription",
-                "env_vars": [],
-                "browser_provider": "browser-use",
-                "requires_nous_auth": True,
-                "managed_nous_feature": "browser",
-                "override_env_vars": ["BROWSER_USE_API_KEY"],
                 "post_setup": "agent_browser",
             },
             {
@@ -1938,10 +1865,8 @@ def _plugin_video_gen_providers() -> list[dict]:
 # searxng, exa, parallel, tavily, firecrawl) live as plugins after
 # PR #25182 — this helper is the sole source of truth for the category's
 # provider rows. The hardcoded entries that used to drive the category
-# were deleted in the same PR; only the two non-provider UX rows
-# ("Nous Subscription" managed-gateway entry, "Firecrawl Self-Hosted")
-# remain in TOOL_CATEGORIES because they describe alternative *setup
-# flows* for the firecrawl backend rather than distinct providers.
+# were deleted in the same PR; only non-provider UX setup-flow rows such as
+# "Firecrawl Self-Hosted" remain in TOOL_CATEGORIES.
 def _plugin_web_search_providers() -> list[dict]:
     """Build picker-row dicts from plugin-registered web search providers.
 
@@ -1996,8 +1921,8 @@ def _plugin_web_search_providers() -> list[dict]:
 # for those three in the "Browser Automation" picker. The hardcoded
 # ``TOOL_CATEGORIES["browser"]`` entries that drove the category before
 # were deleted in the same PR; only non-provider UX setup-flow rows remain
-# ("Nous Subscription", "Local Browser", "Camofox") — see the comment block
-# in ``TOOL_CATEGORIES["browser"]`` for why each one stays hardcoded.
+# ("Local Browser", "Camofox") — see the comment block in
+# ``TOOL_CATEGORIES["browser"]`` for why each one stays hardcoded.
 def _plugin_browser_providers() -> list[dict]:
     """Build picker-row dicts from plugin-registered cloud browser providers.
 
@@ -2150,8 +2075,8 @@ def _visible_providers(
             continue
         visible.append(provider)
 
-    # Inject plugin-registered image_gen backends (OpenAI today, more
-    # later) so the picker lists them alongside FAL / Nous Subscription.
+    # Inject plugin-registered image_gen backends (FAL, OpenAI, OpenAI Codex,
+    # xAI today, more later).
     if cat.get("name") == "Image Generation":
         visible.extend(_plugin_image_gen_providers())
 
@@ -2162,17 +2087,16 @@ def _visible_providers(
 
     # Inject plugin-registered web search backends. After PR #25182, this
     # is the SOLE source of provider rows for the Web Search & Extract
-    # category — the per-provider hardcoded entries were deleted. The two
-    # remaining hardcoded rows ("Nous Subscription", "Firecrawl
-    # Self-Hosted") are non-provider UX setup-flow rows for firecrawl.
+    # category — the per-provider hardcoded entries were deleted. Remaining
+    # hardcoded rows are non-provider UX setup-flow rows for firecrawl.
     if cat.get("name") == "Web Search & Extract":
         visible.extend(_plugin_web_search_providers())
 
     # Inject plugin-registered cloud browser backends. After PR #25214,
     # Browserbase / Browser Use / Firecrawl are the plugin-supplied rows;
-    # the hardcoded "Nous Subscription" / "Local Browser" / "Camofox" rows
-    # stay because they're non-provider UX setup flows (subscription auth,
-    # local fallback, and the REST-API anti-detection backend respectively).
+    # the hardcoded "Local Browser" / "Camofox" rows stay because they're
+    # non-provider UX setup flows (local fallback and the REST-API
+    # anti-detection backend respectively).
     if cat.get("name") == "Browser Automation":
         visible.extend(_plugin_browser_providers())
 
@@ -2318,7 +2242,7 @@ def _configure_tool_category(
     hidden_nous_message = _hidden_nous_gateway_message(
         cat,
         config,
-        f"the Nous Subscription provider for {name}",
+        f"the managed provider for {name}",
         force_fresh=force_fresh,
     )
 
@@ -2385,17 +2309,14 @@ def _configure_tool_category(
                     configured = ""
                 else:
                     configured = " [configured]"
-            # Mark Nous-managed entries. Logged-in paid subscribers get the
-            # "included" star; everyone else gets a "via Nous Portal" hint so
-            # it's clear selecting the row triggers a Portal login. The rows
-            # are always shown now (see _visible_providers) — selecting one
-            # drives an inline login + entitlement check.
+            # Mark managed entries without surfacing provider-specific branding
+            # in generic setup pickers.
             sub_marker = ""
             if p.get("managed_nous_feature"):
                 if _nous_logged_in:
-                    sub_marker = "  ★ Included with your Nous subscription"
+                    sub_marker = "  ★ Included with managed subscription"
                 else:
-                    sub_marker = "  ★ via Nous Portal (login on select)"
+                    sub_marker = "  ★ via managed provider (login on select)"
             provider_choices.append(f"{p['name']}{badge}{tag}{configured}{sub_marker}")
 
         # Add skip option
@@ -2946,10 +2867,10 @@ def _configure_provider(
         if not features.nous_auth_present or not entitled:
             message = format_nous_portal_entitlement_message(
                 features.account_info,
-                capability=f"{provider.get('name', 'Nous Subscription')}",
+                capability=f"{provider.get('name', 'managed provider')}",
             )
             _print_warning(
-                f"  {message or 'Nous Subscription is only available after logging into Nous Portal.'}"
+                f"  {message or 'This provider is only available after logging into Nous Portal.'}"
             )
             return
 
@@ -2981,7 +2902,7 @@ def _configure_provider(
             _run_post_setup(provider["post_setup"])
         _print_success(f"  {provider['name']} - no configuration needed!")
         if managed_feature:
-            _print_info("  Requests for this tool will be billed to your Nous subscription.")
+            _print_info("  Requests for this tool will use the managed subscription.")
         # Plugin-registered image_gen provider: write image_gen.provider
         # and route model selection to the plugin's own catalog.
         plugin_name = provider.get("image_gen_plugin_name")
@@ -3033,7 +2954,7 @@ def _configure_provider(
             _show_portal_hint = False
 
     if _show_portal_hint:
-        _print_info("  Available through Nous Portal subscription.")
+        _print_info("  Available through managed provider subscription.")
 
     for var in env_vars:
         existing = get_env_value(var["key"])
@@ -3227,7 +3148,7 @@ def _configure_tool_category_for_reconfig(
     hidden_nous_message = _hidden_nous_gateway_message(
         cat,
         config,
-        f"the Nous Subscription provider for {name}",
+        f"the managed provider for {name}",
         force_fresh=force_fresh,
     )
 
@@ -3313,10 +3234,10 @@ def _reconfigure_provider(
         if not features.nous_auth_present or not entitled:
             message = format_nous_portal_entitlement_message(
                 features.account_info,
-                capability=f"{provider.get('name', 'Nous Subscription')}",
+                capability=f"{provider.get('name', 'managed provider')}",
             )
             _print_warning(
-                f"  {message or 'Nous Subscription is only available after logging into Nous Portal.'}"
+                f"  {message or 'This provider is only available after logging into Nous Portal.'}"
             )
             return
 
@@ -3363,7 +3284,7 @@ def _reconfigure_provider(
             _run_post_setup(provider["post_setup"])
         _print_success(f"  {provider['name']} - no configuration needed!")
         if managed_feature:
-            _print_info("  Requests for this tool will be billed to your Nous subscription.")
+            _print_info("  Requests for this tool will use the managed subscription.")
         plugin_name = provider.get("image_gen_plugin_name")
         if plugin_name:
             _select_plugin_image_gen_provider(plugin_name, config)
@@ -3529,7 +3450,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
             )
             for ts_key in sorted(auto_configured):
                 label = next((l for k, l, _ in CONFIGURABLE_TOOLSETS if k == ts_key), ts_key)
-                print(color(f"  ✓ {label}: using your Nous subscription defaults", Colors.GREEN))
+                print(color(f"  ✓ {label}: using managed subscription defaults", Colors.GREEN))
 
             # Walk through ALL selected tools that have provider options or
             # need API keys.  This ensures browser (Local vs Browserbase),

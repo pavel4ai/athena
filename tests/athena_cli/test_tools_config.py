@@ -593,7 +593,7 @@ def test_save_platform_tools_still_preserves_mcp_with_platform_default_present()
     assert "terminal" not in saved
 
 
-def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch):
+def test_visible_providers_hide_nous_subscription_when_logged_in(monkeypatch):
     config = {"model": {"provider": "nous"}}
 
     monkeypatch.setattr(
@@ -608,20 +608,11 @@ def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch)
 
     providers = _visible_providers(TOOL_CATEGORIES["browser"], config)
 
-    # The managed Nous row is listed (not necessarily first — "Local Browser"
-    # sorts first so a fresh-install Enter lands on the free local backend).
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
-    # "Local Browser" must be the index-0 default so pressing Enter never
-    # walks a user into a paid Nous Portal login.
+    assert not any(p["name"].startswith("Nous Subscription") for p in providers)
     assert providers[0]["name"] == "Local Browser"
 
 
-def test_visible_providers_show_nous_subscription_when_logged_out(monkeypatch):
-    """Nous-managed Tool Gateway rows are always listed, even logged out.
-
-    Selecting one triggers an inline Portal login (entitlement is checked at
-    selection time, not visibility time).
-    """
+def test_visible_providers_hide_nous_subscription_when_logged_out(monkeypatch):
     config = {"model": {"provider": "openrouter"}}
 
     monkeypatch.setattr(
@@ -636,15 +627,10 @@ def test_visible_providers_show_nous_subscription_when_logged_out(monkeypatch):
 
     providers = _visible_providers(TOOL_CATEGORIES["browser"], config)
 
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
+    assert not any(p["name"].startswith("Nous Subscription") for p in providers)
 
 
-def test_visible_providers_show_nous_subscription_when_paid_access_is_false(monkeypatch):
-    """Logged-in-but-unpaid users still see the managed rows.
-
-    The paid-access gate moved from visibility to selection time — the row is
-    shown; ``ensure_nous_portal_access`` blocks activation if still unpaid.
-    """
+def test_visible_providers_hide_nous_subscription_when_paid_access_is_false(monkeypatch):
     config = {"model": {"provider": "nous"}}
 
     monkeypatch.setattr(
@@ -659,10 +645,10 @@ def test_visible_providers_show_nous_subscription_when_paid_access_is_false(monk
 
     providers = _visible_providers(TOOL_CATEGORIES["browser"], config)
 
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
+    assert not any(p["name"].startswith("Nous Subscription") for p in providers)
 
 
-def test_visible_providers_force_fresh_shows_nous_subscription_after_upgrade(monkeypatch):
+def test_visible_providers_force_fresh_keeps_nous_subscription_hidden(monkeypatch):
     calls = []
 
     def fake_subscription_features(config, *, force_fresh=False):
@@ -689,10 +675,7 @@ def test_visible_providers_force_fresh_shows_nous_subscription_after_upgrade(mon
         force_fresh=True,
     )
 
-    # The managed Nous row reappears after the entitlement upgrade. It is no
-    # longer asserted to be first — "Local Browser" sorts first by design.
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
-    assert ("features", True) in calls
+    assert not any(p["name"].startswith("Nous Subscription") for p in providers)
 
 
 def test_local_browser_provider_is_saved_explicitly(monkeypatch):
@@ -1059,15 +1042,10 @@ class TestImagegenBackendRegistry:
         assert "fal-ai/flux-2/klein/9b" in catalog
         assert "fal-ai/flux-2-pro" in catalog
 
-    def test_image_gen_providers_tagged_with_fal_backend(self):
-        """Both Nous Subscription and FAL.ai providers must carry the
-        imagegen_backend tag so _configure_provider fires the picker."""
+    def test_image_gen_has_no_hardcoded_nous_subscription_provider(self):
         from athena_cli.tools_config import TOOL_CATEGORIES
         providers = TOOL_CATEGORIES["image_gen"]["providers"]
-        for p in providers:
-            assert p.get("imagegen_backend") == "fal", (
-                f"{p['name']} missing imagegen_backend tag"
-            )
+        assert providers == []
 
 
 class TestImagegenModelPicker:
