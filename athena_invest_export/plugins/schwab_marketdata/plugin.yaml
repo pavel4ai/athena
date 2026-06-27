@@ -1,0 +1,6 @@
+name: schwab_marketdata
+version: 0.1.0
+description: Schwab Streamer (WebSocket) Level 1 market-data layer for Athena Schwab.
+author: Athena Investment Intelligence
+kind: tools
+entrypoint: __init__.py

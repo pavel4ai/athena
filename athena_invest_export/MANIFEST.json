@@ -1,0 +1,47 @@
+{
+  "export_name": "athena_invest_export",
+  "schema_version": 1,
+  "exported_at": "2026-06-27T00:06:14",
+  "source_host": "VENGEANCE",
+  "description": "Portable, opt-in snapshot of the Athena Investment Intelligence build. NOT auto-loaded by Athena — restore explicitly via restore.py.",
+  "components": {
+    "athena_invest": {
+      "restore_to": "~/.athena/athena_invest",
+      "note": "Reference constitution, 8 agent specs, mandate template, PROGRESS.md. Live OAuth tokens deliberately EXCLUDED."
+    },
+    "schwab_plugin": {
+      "restore_to": "~/.athena/plugins/schwab_marketdata",
+      "note": "Schwab market-data + OAuth + trader plugin. __pycache__ excluded. Token-gated; inert until credentials present."
+    },
+    "scripts": {
+      "restore_to": "~/.athena/scripts",
+      "note": "schwab_token_health_check.py watchdog used by the token-health cron."
+    }
+  },
+  "secrets_required_after_restore": {
+    "file": "~/.athena/.env",
+    "keys": [
+      "SCHWAB_APP_KEY",
+      "SCHWAB_APP_SECRET",
+      "SCHWAB_CALLBACK_URL"
+    ],
+    "note": "Secrets are NOT exported. Re-add them on the new host, then re-run the OAuth consent flow (plugin README) to mint fresh tokens. Old tokens do not transfer."
+  },
+  "cron_jobs_to_recreate": [
+    {
+      "name": "Schwab token health (athena-market-data)",
+      "schedule": "0 8,20 * * *",
+      "script": "schwab_token_health_check.py",
+      "no_agent": true,
+      "deliver": "local",
+      "note": "Recreate with: athena cron, or the cronjob tool. Retarget delivery to Telegram once the gateway is configured."
+    }
+  ],
+  "post_restore_checklist": [
+    "Add Schwab secrets to ~/.athena/.env (chmod 600).",
+    "Run OAuth consent (see plugins/schwab_marketdata/README.md) to mint tokens.",
+    "Verify: python -m pytest ~/.athena/plugins/schwab_marketdata/ -q --asyncio-mode=auto",
+    "Recreate the token-health cron job.",
+    "Review ~/.athena/athena_invest/PROGRESS.md for remaining TODOs."
+  ]
+}
