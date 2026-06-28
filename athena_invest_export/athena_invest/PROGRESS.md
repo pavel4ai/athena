@@ -66,6 +66,49 @@ inline; Schwab execution + approval = orchestrator-owned, never delegated.
 - DELIVERY: currently "local" (gateway/Telegram not set up). NEEDS RETARGET to
   Telegram once gateway is configured (see TODO).
 
+## PRE-FLIGHT / MOCK MODE (live data, simulated fills) — READY ✓
+
+Run Athena hands-off for days with REAL market data but SIMULATED trades, then
+flip to live cleanly.
+
+- `mode.py` — broker mode switch (mock|live); default mock (safe). Stored in
+  athena_invest/schwab/mode.json.
+- `mock_broker.py` — paper broker on live quotes. Market fills at ask/bid (+2bps
+  slippage), limit orders fill only when live price crosses; per-cohort cash/
+  positions/transactions persisted to athena_invest/mock/<cohort>.json.
+- Tools: `schwab_place_order` (routes mock|live per mode; needs human approval
+  upstream), `schwab_mock_admin` (get/set mode, fund cohort, read account,
+  process working orders, reset).
+- 43 tests pass. LIVE-VERIFIED end to end: funded two cohorts, bought NVDA/SPY at
+  live prices, limit order stayed WORKING, NAV tracked, cohort isolation held.
+- Go-live: `python ~/.athena/scripts/schwab_go_live.py` archives mock state +
+  flips mode to live (--dry-run / --purge options).
+
+Pre-flight usage:
+  1. `schwab_mock_admin set_mode mock` (default)
+  2. `schwab_mock_admin fund cohort=<name> cash=<amt>` per cohort
+  3. Run Athena loop; approved orders fill via mock broker on live prices
+  4. `schwab_mock_admin account cohort=<name>` to see NAV/positions anytime
+  5. When done: `schwab_go_live.py` → add trading-app creds → live
+
+## BLOOMBERG-STYLE LIVE TICKER BAR (CLI) — DONE ✓
+
+A fitted, single-line market ticker pinned above the CLI status bar, showing
+mega-cap last price + % change (green ▲ / red ▼), refreshed every 15s from the
+Schwab Market Data REST API and repainted ~1s (display.cli_refresh_interval=1.0).
+
+- Core (cli.py, +44 lines, generic + opt-in): a "supplemental status line"
+  registry — `AthenaCLI.register_supplemental_status_line(provider)` +
+  `_build_supplemental_status_widgets()`, wired into the layout above status_bar.
+  Any plugin can supply a 1-line fragment provider; bar auto-hides when it
+  returns []. Exceptions in a provider are swallowed (can never break the prompt).
+- Plugin (ticker.py): background daemon poller updates a price cache; render path
+  reads cache only (never blocks). Gated on Schwab creds + live data — invisible
+  if the API is down/unconfigured. Symbols: AAPL/MSFT/NVDA/GOOGL/AMZN/META/SPY/QQQ.
+- Verified: live line renders e.g. " MKT AAPL 282.65 ▲2.72% │ MSFT 372.79 ▲5.66% ...".
+- NOTE: cli.py is a CORE file edit (the user confirmed this is their own Athena).
+  The change is generic (not Schwab-specific) so it's reusable by any plugin.
+
 ## REMAINING TO-DOS (in suggested order)
 
 1. [ ] TRADING APP (Schwab #2 with Trader API entitlement)

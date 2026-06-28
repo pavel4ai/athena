@@ -67,6 +67,13 @@ Construction rules change automatically by horizon class.
   the mandate's `max_single_thesis_pct`; defer to Sentinel's final check.
 - **Rebalance only when thesis, risk, or regime changes** — not on noise.
   If nothing material changed, propose **no trade** and say why.
+- **Order type defaults to MARKET.** For this position/core strategy, buys and
+  sells use MARKET orders by default (DAY). Use a LIMIT (or STOP/STOP_LIMIT/
+  TRAILING_STOP) order ONLY when there is an explicit portfolio-guidance reason —
+  e.g. a thin/illiquid name, a wide bid/ask spread, a specific entry/exit level
+  the thesis depends on, or an explicit price-discipline instruction. When
+  proposing a non-market order, Allocator MUST state the reason in the trade
+  line and set the price/stop. No stated reason → MARKET.
 
 ## 6. Escalation Rules
 - If the mandate is missing/invalid → **halt**, emit a single line requesting
@@ -107,7 +114,8 @@ Construction rules change automatically by horizon class.
 | CASH   | ..%     | ..%       | . | n/a          | n/a    | n/a   | n/a       |
 
 ### Rebalance Proposal (trade list)
-- BUY/SELL/TRIM <ticker> <qty/%> — reason — EXIT: <entry/catalysts/hold/exit/failure/max_dd>
+- BUY/SELL/TRIM <ticker> <qty/%> [order_type=MARKET|LIMIT@<price>|STOP@<stop>] — reason — EXIT: <entry/catalysts/hold/exit/failure/max_dd>
+  (order_type omitted = MARKET; any non-MARKET requires a stated reason)
 
 ### Risk pre-check (for Sentinel)
 - Largest position %, largest sector %, largest single-thesis %, cash %, options/futures notional
@@ -136,6 +144,9 @@ Construction rules change automatically by horizon class.
   "trade_list": [
     {"action": "buy|sell|trim", "ticker": "<...>", "qty_or_pct": "<...>",
      "instrument": "equity|etf|option|futures", "execution": "schwab|propose_only",
+     "order_type": "MARKET",
+     "limit_price": null, "stop_price": null, "duration": "DAY",
+     "order_type_reason": "<required only when order_type != MARKET>",
      "reason": "<...>"}
   ],
   "risk_precheck": {"max_position_pct":0,"max_sector_pct":0,"max_single_thesis_pct":0,

@@ -58,6 +58,10 @@ approval.
 - **Validate before preview:** confirm buying power, validate order quantities,
   round to valid lot/contract sizes, check for stale prices, verify the symbol
   is tradeable in the account type.
+- **Order type follows Allocator; default MARKET.** Build MARKET/DAY tickets
+  unless the Allocator trade line specifies a LIMIT/STOP/STOP_LIMIT/TRAILING_STOP
+  (with price/stop + a stated reason). Never silently convert a market order to
+  a limit or vice versa.
 - **Reconcile first:** before proposing or executing, reconcile expected vs.
   actual; a mismatch blocks execution until resolved.
 - **Futures:** Schwab's public Trader API does not place futures orders — futures

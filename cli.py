@@ -12070,6 +12070,44 @@ class AthenaCLI(CLIAgentSetupMixin, CLICommandsMixin):
         """
         return []
 
+    # Generic supplemental status-line registry. Any plugin/wrapper can register
+    # a zero-arg callable returning prompt_toolkit formatted-text fragments
+    # (list of (style, text) tuples) — or [] to render nothing this frame. The
+    # registry lives in athena_cli.status_lines (a stable package module) so it's
+    # shared regardless of whether this file is imported as __main__ or 'cli'.
+    @classmethod
+    def register_supplemental_status_line(cls, provider) -> None:
+        """Register a fragment-provider callable for an extra TUI status line.
+
+        ``provider()`` must return a list of (style, text) fragments, or [] to
+        render nothing. Safe to call at import/plugin-load time. Exceptions in a
+        provider are swallowed at render time so a bad provider can never break
+        the prompt.
+        """
+        from athena_cli.status_lines import register_supplemental_status_line
+        register_supplemental_status_line(provider)
+
+    def _build_supplemental_status_widgets(self) -> list:
+        """Build ONE dynamic bar that renders all registered providers live.
+
+        Returns a single ConditionalContainer whose fragment function reads the
+        shared provider registry at RENDER time (not layout-build time), so
+        providers registered by plugins after the layout is constructed still
+        appear. The bar is hidden whenever every provider yields nothing.
+        """
+        from athena_cli.status_lines import merged_supplemental_fragments
+
+        return [
+            ConditionalContainer(
+                Window(
+                    content=FormattedTextControl(merged_supplemental_fragments),
+                    height=1,
+                    wrap_lines=False,
+                ),
+                filter=Condition(lambda: bool(merged_supplemental_fragments())),
+            )
+        ]
+
     def _register_extra_tui_keybindings(self, kb, *, input_area) -> None:
         """Register extra keybindings on the TUI ``KeyBindings`` object.
 
@@ -12122,6 +12160,7 @@ class AthenaCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 spinner_widget,
                 spacer,
                 *self._get_extra_tui_widgets(),
+                *self._build_supplemental_status_widgets(),
                 status_bar,
                 input_rule_top,
                 image_bar,

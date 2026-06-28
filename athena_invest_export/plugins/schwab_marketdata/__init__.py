@@ -239,6 +239,117 @@ SCHWAB_TOKEN_HEALTH_SCHEMA = {
 }
 
 
+def schwab_place_order(args: Dict[str, Any], **kwargs) -> str:
+    """Place an order. Routes to MOCK broker (paper) or LIVE Trader API per mode.
+
+    SAFETY: this is the execution endpoint. The orchestrator must have a recorded
+    human approval before calling it (the agent spec enforces the approval gate).
+    In mock mode it simulates fills on live quotes; in live mode it hits Schwab.
+    """
+    if not _credentials_present():
+        return json.dumps({"success": False, "available": False,
+                           "error": "Schwab credentials not configured."})
+    cohort = args.get("cohort")
+    order = args.get("order")
+    account_hash = args.get("account_hash", f"MOCK-{cohort}")
+    if not order:
+        return json.dumps({"success": False, "error": "Missing 'order' payload."})
+    try:
+        from . import trader, mode
+        # Validate the order shape regardless of mode (instruction matrix etc.)
+        v = trader.validate_order(order)
+        if not v["valid"]:
+            return json.dumps({"success": False, "error": "Invalid order", "details": v["errors"]})
+        if mode.is_mock():
+            if not cohort:
+                return json.dumps({"success": False, "error": "Mock mode needs 'cohort'."})
+            from .mock_broker import MockBroker
+            result = MockBroker(cohort).place_order(account_hash, order)
+            return json.dumps({"success": True, "mode": "mock", **result})
+        # live
+        result = trader.place_order(account_hash, order)
+        return json.dumps({"success": True, "mode": "live", **result})
+    except Exception as exc:
+        logger.exception("schwab_place_order failed")
+        return json.dumps({"success": False, "error": str(exc)})
+
+
+def schwab_mock_admin(args: Dict[str, Any], **kwargs) -> str:
+    """Mock-mode admin: get/set mode, fund a cohort, read mock account, process
+    working orders. action one of: get_mode|set_mode|fund|account|process|reset."""
+    try:
+        from . import mode
+        action = (args.get("action") or "get_mode").lower()
+        if action == "get_mode":
+            return json.dumps({"success": True, "mode": mode.get_mode()})
+        if action == "set_mode":
+            return json.dumps({"success": True, **mode.set_mode(args.get("mode", "mock"))})
+
+        from .mock_broker import MockBroker, _mock_dir
+        cohort = args.get("cohort")
+        if action in ("fund", "account", "process", "reset") and not cohort:
+            return json.dumps({"success": False, "error": "cohort required."})
+        if action == "fund":
+            b = MockBroker(cohort); b.fund(float(args.get("cash", 0)))
+            return json.dumps({"success": True, "cohort": cohort, "cash": b.state["cash"]})
+        if action == "account":
+            return json.dumps({"success": True, **MockBroker(cohort).get_account()})
+        if action == "process":
+            return json.dumps({"success": True, "filled": MockBroker(cohort).process_working_orders()})
+        if action == "reset":
+            p = _mock_dir() / f"{cohort}.json"
+            existed = p.exists()
+            if existed:
+                p.unlink()
+            return json.dumps({"success": True, "reset": cohort, "existed": existed})
+        return json.dumps({"success": False, "error": f"Unknown action {action}"})
+    except Exception as exc:
+        logger.exception("schwab_mock_admin failed")
+        return json.dumps({"success": False, "error": str(exc)})
+
+
+SCHWAB_PLACE_ORDER_SCHEMA = {
+    "name": "schwab_place_order",
+    "description": (
+        "Place a Schwab order. Routes to the MOCK paper broker or the LIVE Trader "
+        "API depending on the current mode (mock by default). REQUIRES a recorded "
+        "human approval upstream — this is the execution step. Mock fills use live "
+        "quotes (market at ask/bid, limit when crossable). Provide a validated "
+        "order payload (use the trader order builder shape)."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "cohort": {"type": "string", "description": "Cohort name (required in mock)."},
+            "account_hash": {"type": "string", "description": "Live account hash (live mode)."},
+            "order": {"type": "object", "description": "Schwab order payload (orderType, orderLegCollection, ...)."},
+        },
+        "required": ["order"],
+    },
+}
+
+SCHWAB_MOCK_ADMIN_SCHEMA = {
+    "name": "schwab_mock_admin",
+    "description": (
+        "Manage pre-flight mock/paper trading: get/set broker mode (mock|live), "
+        "fund a mock cohort with starting cash, read a mock account (cash + "
+        "positions + NAV on live prices), process working limit orders, or reset "
+        "a cohort's mock state. Use to run Athena hands-off in pre-flight."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "action": {"type": "string",
+                       "enum": ["get_mode", "set_mode", "fund", "account", "process", "reset"]},
+            "mode": {"type": "string", "enum": ["mock", "live"], "description": "For set_mode."},
+            "cohort": {"type": "string", "description": "Cohort name."},
+            "cash": {"type": "number", "description": "Starting cash for fund."},
+        },
+        "required": ["action"],
+    },
+}
+
+
 def register(ctx) -> None:
     """Plugin entry point — register the token-gated market-data + account tools."""
     ctx.register_tool(
@@ -271,4 +382,35 @@ def register(ctx) -> None:
         description="Schwab OAuth token health / re-auth check.",
         emoji="🔑",
     )
+    ctx.register_tool(
+        name="schwab_place_order",
+        toolset="schwab",
+        schema=SCHWAB_PLACE_ORDER_SCHEMA,
+        handler=schwab_place_order,
+        check_fn=_credentials_present,
+        requires_env=["SCHWAB_APP_KEY", "SCHWAB_APP_SECRET"],
+        description="Place a Schwab order (mock paper or live, per mode).",
+        emoji="🧾",
+    )
+    ctx.register_tool(
+        name="schwab_mock_admin",
+        toolset="schwab",
+        schema=SCHWAB_MOCK_ADMIN_SCHEMA,
+        handler=schwab_mock_admin,
+        check_fn=_credentials_present,
+        requires_env=["SCHWAB_APP_KEY", "SCHWAB_APP_SECRET"],
+        description="Manage pre-flight mock/paper trading + broker mode.",
+        emoji="🧪",
+    )
     logger.info("schwab_marketdata plugin registered (gated=%s)", _credentials_present())
+
+    # Bloomberg-style live ticker bar in the CLI (gated on Schwab creds + live
+    # data). Safe no-op in the gateway or when credentials are absent.
+    try:
+        if _credentials_present():
+            from . import ticker
+            if ticker.register_with_cli():
+                ticker.start_ticker()
+                logger.info("schwab_marketdata: live ticker bar enabled.")
+    except Exception as exc:
+        logger.debug("schwab_marketdata: ticker setup skipped: %s", exc)
