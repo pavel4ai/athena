@@ -1883,6 +1883,7 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
         def _execute(next_args: dict) -> Any:
             return _ra().handle_function_call(
                 function_name, next_args, effective_task_id,
+                user_task=getattr(agent, "_current_user_task", "") or "",
                 tool_call_id=tool_call_id,
                 session_id=agent.session_id or "",
                 turn_id=getattr(agent, "_current_turn_id", "") or "",

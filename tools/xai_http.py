@@ -20,7 +20,8 @@ def has_xai_credentials() -> bool:
     Resolution order, fast-to-slow:
 
     1. ``XAI_API_KEY`` env var (cheapest; covers explicit-key users).
-    2. ``~/.athena/auth.json`` has a non-empty ``providers.xai-oauth.tokens.access_token``
+    2. ``XAI_API_KEY`` in Athena's standard ``.env`` secrets file.
+    3. ``~/.athena/auth.json`` has a non-empty ``providers.xai-oauth.tokens.access_token``
        (single file read, no expiry check, no refresh).
 
     Returns False on any exception so a corrupted auth store can't block
@@ -28,6 +29,8 @@ def has_xai_credentials() -> bool:
     in ``search()`` (or whichever caller actually makes the request).
     """
     if os.environ.get("XAI_API_KEY", "").strip():
+        return True
+    if str(get_env_value("XAI_API_KEY", "") or "").strip():
         return True
     try:
         from athena_constants import get_athena_home

@@ -2835,6 +2835,18 @@ class TestAuxiliaryPoolRotationRetry:
         mock_fallback.assert_not_called()
 
 
+class TestAuxiliaryExtraBody:
+    def test_task_specific_extra_body_is_returned(self):
+        from agent.auxiliary_client import get_auxiliary_extra_body
+
+        configured = {"reasoning": {"effort": "high"}}
+        with patch(
+            "agent.auxiliary_client._get_task_extra_body",
+            return_value=configured,
+        ):
+            assert get_auxiliary_extra_body("compression") == configured
+
+
 class TestCodexAdapterReasoningTranslation:
     """Verify _CodexCompletionsAdapter translates extra_body.reasoning
     into the Responses API's top-level reasoning + include fields, matching

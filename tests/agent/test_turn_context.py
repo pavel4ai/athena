@@ -71,6 +71,7 @@ class _FakeAgent:
         self._invalid_tool_retries = -1
         self._vision_supported = None
         self._persist_calls = 0
+        self._current_user_task = ""
 
     # --- methods the prologue calls ---
     def _ensure_db_session(self):
@@ -170,8 +171,16 @@ def test_persist_user_message_becomes_original():
     ctx = _build(agent, user_message="api-prefixed", persist_user_message="clean")
     # original_user_message tracks the clean persist override.
     assert ctx.original_user_message == "clean"
+    assert agent._current_user_task == "clean"
     # but the appended user turn carries the full (sanitized) message.
     assert ctx.messages[-1]["content"] == "api-prefixed"
+
+
+def test_current_user_task_is_replaced_each_turn():
+    agent = _FakeAgent()
+    agent._current_user_task = "stale prior instruction"
+    _build(agent, user_message="fresh inbound instruction")
+    assert agent._current_user_task == "fresh inbound instruction"
 
 
 def test_memory_nudge_fires_at_interval():

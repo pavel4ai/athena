@@ -4505,13 +4505,17 @@ def resolve_vision_provider_client(
     return requested, client, final_model
 
 
-def get_auxiliary_extra_body() -> dict:
+def get_auxiliary_extra_body(task: str = "") -> dict:
     """Return extra_body kwargs for auxiliary API calls.
-    
-    Includes Nous Portal product tags when the auxiliary client is backed
-    by Nous Portal. Returns empty dict otherwise.
+
+    Includes task-specific ``auxiliary.<task>.extra_body`` fields and Nous
+    Portal product tags when the resolved client is backed by Nous Portal.
+    Omitting *task* preserves the legacy attribution-only behavior.
     """
-    return _nous_extra_body() if auxiliary_is_nous else {}
+    extra_body = _nous_extra_body() if auxiliary_is_nous else {}
+    if task:
+        extra_body.update(_get_task_extra_body(task))
+    return extra_body
 
 
 def auxiliary_max_tokens_param(value: int, *, model: Optional[str] = None) -> dict:

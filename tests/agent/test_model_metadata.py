@@ -184,6 +184,26 @@ class TestDefaultContextLengths:
                 api_key="oauth-token",
             ) == 256000
 
+    def test_openai_api_uses_openai_models_dev_context(self):
+        """Direct OpenAI API auth should share OpenAI's model metadata."""
+        registry = {
+            "openai": {
+                "models": {
+                    "gpt-5.6-sol": {
+                        "limit": {"context": 1_050_000, "output": 128_000},
+                    },
+                },
+            },
+        }
+        with patch("agent.model_metadata.get_cached_context_length", return_value=None), \
+             patch("agent.model_metadata._query_ollama_api_show", return_value=None), \
+             patch("agent.models_dev.fetch_models_dev", return_value=registry):
+            assert get_model_context_length(
+                "gpt-5.6-sol",
+                provider="openai-api",
+                base_url="https://api.openai.com/v1",
+            ) == 1_050_000
+
     def test_deepseek_v4_models_1m_context(self):
         from agent.model_metadata import get_model_context_length
         from unittest.mock import patch as mock_patch

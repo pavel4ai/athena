@@ -1787,6 +1787,28 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     # scheduler process — every job this process runs is a cron job.
     os.environ["ATHENA_CRON_SESSION"] = "1"
 
+    # Guarantee HOME is present for the duration of the cron run.  Cron jobs
+    # execute in the scheduler process, but that process may have been spawned
+    # (systemd, detached launcher, WSL session without a login shell) with no
+    # HOME in its environment.  A missing HOME makes Path.expanduser() raise
+    # "Could not determine home directory", which previously crashed the
+    # agent's tool-call loop mid-job (see agent/subdirectory_hints.py).  We
+    # repair it in place only when it's genuinely absent, so a deliberately
+    # configured HOME / profile-home is never overridden.
+    if not (os.environ.get("HOME") or "").strip():
+        try:
+            from athena_constants import get_real_home
+            _repaired_home = str(get_real_home())
+        except Exception:
+            _repaired_home = ""
+        if _repaired_home:
+            os.environ["HOME"] = _repaired_home
+            os.environ.setdefault("ATHENA_REAL_HOME", _repaired_home)
+            logger.warning(
+                "Job '%s': HOME was unset in the cron environment; repaired to %s",
+                job_id, _repaired_home,
+            )
+
     # Use ContextVars for per-job session/delivery state so parallel jobs
     # don't clobber each other's targets (os.environ is process-global).
     from gateway.session_context import set_session_vars, clear_session_vars, _VAR_MAP

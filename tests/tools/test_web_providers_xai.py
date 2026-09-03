@@ -84,6 +84,14 @@ class TestXAIProviderIsAvailable:
         from plugins.web.xai.provider import XAIWebSearchProvider
         assert XAIWebSearchProvider().is_available() is True
 
+    def test_available_via_dotenv_key(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("XAI_API_KEY", raising=False)
+        monkeypatch.setenv("ATHENA_HOME", str(tmp_path))
+        (tmp_path / ".env").write_text("XAI_API_KEY=sk-xai-dotenv\n")
+
+        from plugins.web.xai.provider import XAIWebSearchProvider
+        assert XAIWebSearchProvider().is_available() is True
+
     def test_available_via_auth_store(self, monkeypatch, tmp_path):
         """Cheap probe should detect xai-oauth tokens in ~/.athena/auth.json
         without invoking the resolver (which can trigger refresh)."""

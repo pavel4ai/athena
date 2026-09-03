@@ -290,6 +290,29 @@ class TestPermissionErrorHandling:
             # Result may be None (backend skipped) — the key point is no crash
             assert result is None or isinstance(result, str)
 
+    def test_check_tool_call_survives_missing_home(self, project, monkeypatch):
+        """check_tool_call must not crash when HOME is unset.
+
+        Regression: Path.expanduser() raises RuntimeError("Could not determine
+        home directory") when neither HOME nor a resolvable home exists. Cron
+        runs in environments that can lack HOME, and this previously crashed
+        the agent's tool-call loop. The hint feature must degrade to None.
+        """
+        # Strip every home signal so Path("~/x").expanduser() raises RuntimeError.
+        for var in ("HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"):
+            monkeypatch.delenv(var, raising=False)
+        tracker = SubdirectoryHintTracker(working_dir=str(project))
+
+        def patched_expanduser(self):
+            raise RuntimeError("Could not determine home directory.")
+
+        with patch.object(Path, "expanduser", patched_expanduser):
+            # A tilde-path token forces the expanduser() path; must not raise.
+            result = tracker.check_tool_call(
+                "terminal", {"command": "cat ~/.athena/notes.md"}
+            )
+        assert result is None or isinstance(result, str)
+
 
 class TestOutsideWorkspaceRejection:
     """Direct tests for _is_valid_subdir rejecting outside-workspace paths."""

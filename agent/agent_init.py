@@ -608,6 +608,11 @@ def init_agent(
     agent._persist_user_message_idx = None
     agent._persist_user_message_override = None
     agent._persist_user_message_timestamp = None
+    # Exact clean inbound text for the current turn. Registry tools receive
+    # this as ``user_task`` so security-sensitive handlers can distinguish a
+    # genuine user instruction from model-authored text. It remains empty
+    # before the first turn and is reset by build_turn_context every turn.
+    agent._current_user_task = ""
 
     # Cache anthropic image-to-text fallbacks per image payload/URL so a
     # single tool loop does not repeatedly re-run auxiliary vision on the

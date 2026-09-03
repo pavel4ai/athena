@@ -144,6 +144,7 @@ PROVIDER_TO_MODELS_DEV: Dict[str, str] = {
     "novita": "novita-ai",
     "anthropic": "anthropic",
     "openai": "openai",
+    "openai-api": "openai",
     "openai-codex": "openai",
     "zai": "zai",
     "kimi": "kimi-for-coding",

@@ -248,6 +248,10 @@ def build_turn_context(
 
     # Preserve the original user message (no nudge injection).
     original_user_message = persist_user_message if persist_user_message is not None else user_message
+    # Carry only the clean, genuine inbound message to registry tools. Do not
+    # reconstruct provenance from model context: the API-facing message may
+    # contain timestamp or observed-group-context wrappers.
+    agent._current_user_task = original_user_message
 
     # Track memory nudge trigger (turn-based, checked here).
     should_review_memory = False

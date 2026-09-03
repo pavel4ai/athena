@@ -2532,6 +2532,7 @@ class TestConcurrentToolExecution:
             result = agent._invoke_tool("web_search", {"q": "test"}, "task-1")
             mock_hfc.assert_called_once_with(
                 "web_search", {"q": "test"}, "task-1",
+                user_task="",
                 tool_call_id=None,
                 session_id=agent.session_id,
                 turn_id="",
@@ -2544,6 +2545,41 @@ class TestConcurrentToolExecution:
                 tool_request_middleware_trace=[],
             )
             assert result == "result"
+
+    @pytest.mark.parametrize("quiet_mode", [True, False])
+    def test_sequential_registry_dispatch_forwards_current_user_task(
+        self, agent, quiet_mode
+    ):
+        """Both sequential registry branches preserve genuine turn provenance."""
+        exact_command = "APPROVE B892-20260901-01"
+        agent.quiet_mode = quiet_mode
+        agent._current_user_task = exact_command
+        tool_call = _mock_tool_call(name="web_search", arguments='{}', call_id="c1")
+        mock_msg = _mock_assistant_msg(content="", tool_calls=[tool_call])
+
+        with patch("run_agent.handle_function_call", return_value="result") as mock_hfc:
+            agent._execute_tool_calls_sequential(mock_msg, [], "task-1")
+
+        assert mock_hfc.call_args.kwargs["user_task"] == exact_command
+
+    def test_concurrent_registry_dispatch_forwards_current_user_task(self, agent):
+        """Concurrent registry dispatch uses the same immutable turn provenance."""
+        exact_command = "APPROVE B892-20260901-01"
+        agent._current_user_task = exact_command
+        tool_calls = [
+            _mock_tool_call(name="web_search", arguments='{}', call_id="c1"),
+            _mock_tool_call(name="web_search", arguments='{}', call_id="c2"),
+        ]
+        mock_msg = _mock_assistant_msg(content="", tool_calls=tool_calls)
+
+        with patch("run_agent.handle_function_call", return_value="result") as mock_hfc:
+            agent._execute_tool_calls_concurrent(mock_msg, [], "task-1")
+
+        assert mock_hfc.call_count == 2
+        assert all(
+            call.kwargs["user_task"] == exact_command
+            for call in mock_hfc.call_args_list
+        )
 
     def test_sequential_tool_callbacks_fire_in_order(self, agent):
         tool_call = _mock_tool_call(name="web_search", arguments='{"query":"hello"}', call_id="c1")

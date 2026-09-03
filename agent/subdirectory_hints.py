@@ -81,21 +81,29 @@ class SubdirectoryHintTracker:
         """Check tool call arguments for new directories and load any hint files.
 
         Returns formatted hint text to append to the tool result, or None.
+
+        This is a best-effort convenience feature and must never raise into the
+        agent's tool-call loop — any failure (e.g. a path op blowing up because
+        HOME is missing from a cron env) degrades silently to "no hints".
         """
-        dirs = self._extract_directories(tool_name, tool_args)
-        if not dirs:
+        try:
+            dirs = self._extract_directories(tool_name, tool_args)
+            if not dirs:
+                return None
+
+            all_hints = []
+            for d in dirs:
+                hints = self._load_hints_for_directory(d)
+                if hints:
+                    all_hints.append(hints)
+
+            if not all_hints:
+                return None
+
+            return "\n\n" + "\n\n".join(all_hints)
+        except Exception:
+            logger.debug("subdirectory hint check failed; skipping", exc_info=True)
             return None
-
-        all_hints = []
-        for d in dirs:
-            hints = self._load_hints_for_directory(d)
-            if hints:
-                all_hints.append(hints)
-
-        if not all_hints:
-            return None
-
-        return "\n\n" + "\n\n".join(all_hints)
 
     def _extract_directories(
         self, tool_name: str, args: Dict[str, Any]
@@ -144,7 +152,12 @@ class SubdirectoryHintTracker:
                 if parent == p:
                     break  # filesystem root
                 p = parent
-        except (OSError, ValueError):
+        except (OSError, ValueError, RuntimeError):
+            # RuntimeError covers Path.expanduser() raising "Could not determine
+            # home directory" when HOME is missing from the environment (seen in
+            # cron subprocesses that inherit a stripped env). Subdirectory hints
+            # are a best-effort convenience — a bad token must never crash the
+            # agent's tool-call loop.
             pass
 
     def _extract_paths_from_command(self, cmd: str, candidates: Set[Path]):
