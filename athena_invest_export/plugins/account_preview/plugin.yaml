@@ -1,0 +1,22 @@
+name: account-preview
+version: 1.0.0
+description: Account-isolated read-only and preview-only Schwab handoffs for default-profile live cohorts.
+toolsets:
+  account331_readonly:
+    description: Read-only Schwab account, orders, token health, and quotes for suffix 331.
+    tools: [account331_token_health, account331_read_account, account331_read_orders, account331_quote]
+  account331_preview:
+    description: Reconcile, broker-preview, and persist a suffix-331 approval package without placement.
+    tools: [account331_preview_token_health, account331_preview_read_account, account331_preview_read_orders, account331_preview_quote, account331_prepare_preview]
+  account568_readonly:
+    description: Read-only Schwab account, orders, token health, and quotes for suffix 568.
+    tools: [account568_token_health, account568_read_account, account568_read_orders, account568_quote]
+  account568_preview:
+    description: Reconcile, broker-preview, and persist a suffix-568 approval package without placement.
+    tools: [account568_preview_token_health, account568_preview_read_account, account568_preview_read_orders, account568_preview_quote, account568_prepare_preview]
+  account726_readonly:
+    description: Read-only Schwab account, orders, token health, and quotes for suffix 726.
+    tools: [account726_token_health, account726_read_account, account726_read_orders, account726_quote]
+  account726_preview:
+    description: Reconcile, broker-preview, and persist a suffix-726 approval package without placement.
+    tools: [account726_preview_token_health, account726_preview_read_account, account726_preview_read_orders, account726_preview_quote, account726_prepare_preview]
