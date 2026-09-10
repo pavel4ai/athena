@@ -1,6 +1,16 @@
 name: schwab_marketdata
-version: 0.1.0
-description: Schwab Streamer (WebSocket) Level 1 market-data layer for Athena Schwab.
+version: 0.2.0
+description: Schwab read-only market/account data, broker administration, and isolated execution surfaces.
 author: Athena Investment Intelligence
-kind: tools
+kind: standalone
 entrypoint: __init__.py
+toolsets:
+  schwab_readonly:
+    description: Read-only Schwab quotes, account balances/positions, and OAuth health.
+    tools: [schwab_quote, schwab_accounts, schwab_token_health]
+  schwab_admin:
+    description: Broker mode and mock-cohort administration; never submits a Schwab order.
+    tools: [schwab_mock_admin]
+  schwab_execute:
+    description: Post-approval order placement through the mock/live fail-closed executor.
+    tools: [schwab_place_order]

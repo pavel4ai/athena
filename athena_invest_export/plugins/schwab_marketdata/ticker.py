@@ -127,6 +127,7 @@ def get_ticker_fragments() -> list:
     live Schwab data is flowing. Lazily starts the background poller on first
     call so the ticker works regardless of plugin-load ordering.
     """
+    # Self-start the poller on first render (idempotent).
     if not _state["running"]:
         start_ticker()
 
@@ -181,21 +182,25 @@ TICKER_STYLE = {
 
 
 def register_with_cli() -> bool:
-    """Register the ticker fragment-provider into the Athena CLI hook.
+    """Register the ticker fragment-provider into the Athena CLI registry.
 
-    Returns True if registration succeeded. Safe no-op if the CLI class or hook
-    is unavailable (e.g. running in the gateway, not the CLI).
+    Registers into ``athena_cli.status_lines`` — a stable package module shared
+    by the running CLI regardless of whether cli.py was imported as ``__main__``
+    or ``cli``. Safe no-op if the registry is unavailable (e.g. old core).
     """
     try:
-        import cli  # Athena core CLI module
-        if not hasattr(cli.AthenaCLI, "register_supplemental_status_line"):
-            logger.info("ticker: CLI lacks supplemental-status hook; skipping.")
-            return False
-        # Use a style-injecting wrapper: prepend inline color so it renders even
-        # if the TUI style dict doesn't know our classes.
-        cli.AthenaCLI.register_supplemental_status_line(_styled_fragments)
+        from athena_cli.status_lines import register_supplemental_status_line
+        register_supplemental_status_line(_styled_fragments)
         return True
     except Exception as exc:
+        # Fallback for older cores that only have the class-level hook.
+        try:
+            import cli
+            if hasattr(cli.AthenaCLI, "register_supplemental_status_line"):
+                cli.AthenaCLI.register_supplemental_status_line(_styled_fragments)
+                return True
+        except Exception:
+            pass
         logger.debug("ticker register_with_cli failed: %s", exc)
         return False
 

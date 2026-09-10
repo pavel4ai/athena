@@ -64,17 +64,49 @@ class MockBroker:
     # -- state --------------------------------------------------------------
     def _load(self) -> Dict[str, Any]:
         if self.path.exists():
-            return json.loads(self.path.read_text())
+            return json.loads(self.path.read_text(encoding="utf-8"))
         return {"cohort": self.cohort, "cash": 0.0, "positions": {},
                 "orders": [], "transactions": [], "created": _now_ms()}
 
     def _save(self) -> None:
-        self.path.write_text(json.dumps(self.state, indent=2))
+        # Atomic durable write: temp file in the same dir -> fsync -> os.replace.
+        # Prevents a crash mid-write from truncating/corrupting the cohort state.
+        import os
+        tmp = self.path.with_suffix(self.path.suffix + f".tmp.{os.getpid()}")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.state, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, self.path)  # atomic on POSIX + Windows
 
-    def fund(self, cash: float) -> None:
-        """Set starting cash for a fresh mock cohort."""
+    def fund(self, cash: float, allow_after_trades: bool = False) -> None:
+        """Set starting cash for a fresh cohort. Pre-trade only by default.
+
+        Funding after trades have occurred would arbitrarily rewrite the balance
+        (invented money). Refused unless explicitly modeling a deposit via
+        `deposit()`. Use this only to initialize a fresh cohort.
+        """
+        if self.state.get("transactions") and not allow_after_trades:
+            raise ValueError(
+                f"fund() refused: cohort '{self.cohort}' already has "
+                f"{len(self.state['transactions'])} trade(s). Funding now would "
+                f"arbitrarily rewrite the balance. Use deposit() to model an "
+                f"explicit cash deposit, or reset the cohort first.")
         self.state["cash"] = float(cash)
         self.state.setdefault("initial_cash", float(cash))
+        self._save()
+
+    def deposit(self, amount: float) -> None:
+        """Model an explicit additive cash deposit/withdrawal (event-like).
+
+        Unlike fund(), this is additive and recorded as a transaction, so the
+        balance is never silently overwritten — a deposit is a tracked event.
+        """
+        amount = float(amount)
+        self.state["cash"] = self.state.get("cash", 0.0) + amount
+        self.state.setdefault("transactions", []).append({
+            "time": _now_ms(), "type": "deposit" if amount >= 0 else "withdrawal",
+            "amount": amount})
         self._save()
 
     # -- read surface (mirrors trader.py) -----------------------------------
@@ -110,18 +142,41 @@ class MockBroker:
         return self.state["transactions"]
 
     # -- order placement (mirrors trader.place_order) -----------------------
-    def place_order(self, account_hash: str, order: Dict[str, Any]) -> Dict[str, Any]:
-        """Simulate placing an order. Returns {order_id, status, fills:[...]}."""
+    def place_order(self, account_hash: str, order: Dict[str, Any],
+                    idempotency_key: str = None) -> Dict[str, Any]:
+        """Simulate placing an order. Returns {order_id, status, fills:[...]}.
+
+        idempotency_key: if provided, a repeat call with the same key returns the
+        ORIGINAL result without placing/filling again (retries & double-fired
+        crons cannot double-fill). Mirrors the live requirement.
+        """
+        if idempotency_key:
+            for rec in self.state["orders"]:
+                if rec.get("idempotency_key") == idempotency_key:
+                    return {"order_id": rec["order_id"], "status": rec["status"],
+                            "fills": rec["fills"], "mock": True, "idempotent_replay": True}
+
         order_id = uuid.uuid4().hex[:12]
         legs = order.get("orderLegCollection", [])
         otype = order.get("orderType", "MARKET").upper()
         limit_price = float(order["price"]) if order.get("price") else None
 
         record = {"order_id": order_id, "placed_at": _now_ms(),
+                  "idempotency_key": idempotency_key,
                   "orderType": otype, "price": limit_price,
                   "status": "WORKING", "legs": legs, "fills": []}
 
-        filled = self._try_fill(record)
+        try:
+            filled = self._try_fill(record)
+        except ValueError as exc:
+            # Fail loud: a rejected order (e.g. oversell) is recorded as REJECTED,
+            # not silently dropped, and the reason is surfaced.
+            record["status"] = "REJECTED"
+            record["reject_reason"] = str(exc)
+            self.state["orders"].append(record)
+            self._save()
+            return {"order_id": order_id, "status": "REJECTED",
+                    "reason": str(exc), "fills": [], "mock": True}
         record["status"] = "FILLED" if filled else "WORKING"
         self.state["orders"].append(record)
         self._save()
@@ -129,13 +184,30 @@ class MockBroker:
                 "fills": record["fills"], "mock": True}
 
     def _try_fill(self, record: Dict[str, Any]) -> bool:
-        """Attempt to fill all legs against live quotes. All-or-nothing per order."""
+        """Attempt to fill all legs against live quotes. All-or-nothing per order.
+
+        Raises ValueError if a sell exceeds held quantity (no shorting modeled) —
+        prevents inventing positions / phantom cash. Validation happens in the
+        planning phase BEFORE any leg is applied, so a reject leaves state clean.
+        """
         planned = []
+        # track holdings as we plan, so multi-leg orders can't oversell either
+        proj_qty = {s: p["qty"] for s, p in self.state["positions"].items()}
         for leg in record["legs"]:
             sym = leg["instrument"]["symbol"]
             qty = int(leg["quantity"])
             instr = leg["instruction"].upper()
             side = "buy" if instr in ("BUY", "BUY_TO_OPEN", "BUY_TO_COVER", "BUY_TO_CLOSE") else "sell"
+            # Oversell guard: a closing sell cannot exceed what is held. Shorting
+            # (SELL_SHORT) is NOT modeled in the mock -> also rejected for now.
+            if side == "sell":
+                if instr == "SELL_SHORT":
+                    raise ValueError(f"short selling not modeled in mock ({sym})")
+                held = proj_qty.get(sym, 0)
+                if qty > held:
+                    raise ValueError(
+                        f"oversell rejected: {instr} {qty} {sym} but only {held} held")
+                proj_qty[sym] = held - qty
             q = _live_quote(sym)
             ask, bid, last = q.get("ask_price") or q["last_price"], q.get("bid_price") or q["last_price"], q["last_price"]
             slip = self.slippage_bps / 10000.0

@@ -131,3 +131,62 @@ def test_mode_rejects_bad_value(tmp_path, monkeypatch):
     monkeypatch.setenv("ATHENA_HOME", str(tmp_path))
     with pytest.raises(ValueError):
         MODE.set_mode("paper")
+
+
+# -- money-safety fixes (expert review, 2026-06-27) ------------------------
+def test_oversell_is_rejected(broker):
+    broker.place_order("MOCK", _mkt("AAPL", "BUY", 10))
+    r = broker.place_order("MOCK", _mkt("AAPL", "SELL", 25))  # only 10 held
+    assert r["status"] == "REJECTED"
+    assert "oversell" in r["reason"]
+    # state unchanged: still hold exactly 10, no phantom cash credited
+    assert broker.state["positions"]["AAPL"]["qty"] == 10
+
+
+def test_sell_with_no_position_rejected(broker):
+    r = broker.place_order("MOCK", _mkt("SPY", "SELL", 1))
+    assert r["status"] == "REJECTED" and "oversell" in r["reason"]
+    assert "SPY" not in broker.state["positions"]
+
+
+def test_short_sell_rejected(broker):
+    order = {"orderType": "MARKET", "orderLegCollection": [
+        {"instruction": "SELL_SHORT", "quantity": 5,
+         "instrument": {"symbol": "AAPL", "assetType": "EQUITY"}}]}
+    r = broker.place_order("MOCK", order)
+    assert r["status"] == "REJECTED" and "short" in r["reason"].lower()
+
+
+def test_idempotency_key_prevents_double_fill(broker):
+    k = "preview-RH-1-leg-AAPL"
+    r1 = broker.place_order("MOCK", _mkt("AAPL", "BUY", 10), idempotency_key=k)
+    cash_after = broker.state["cash"]
+    r2 = broker.place_order("MOCK", _mkt("AAPL", "BUY", 10), idempotency_key=k)  # retry
+    assert r1["order_id"] == r2["order_id"]
+    assert r2.get("idempotent_replay") is True
+    # only filled once: still 10 shares, cash unchanged by the retry
+    assert broker.state["positions"]["AAPL"]["qty"] == 10
+    assert broker.state["cash"] == cash_after
+
+
+def test_fund_refused_after_trades(broker):
+    broker.place_order("MOCK", _mkt("AAPL", "BUY", 1))
+    with pytest.raises(ValueError, match="fund\\(\\) refused"):
+        broker.fund(999999.0)
+
+
+def test_deposit_is_additive_and_tracked(broker):
+    broker.place_order("MOCK", _mkt("AAPL", "BUY", 1))
+    cash = broker.state["cash"]
+    broker.deposit(5000.0)
+    assert broker.state["cash"] == cash + 5000.0
+    assert any(t.get("type") == "deposit" for t in broker.state["transactions"])
+
+
+def test_atomic_save_leaves_no_tmp(broker):
+    broker.place_order("MOCK", _mkt("AAPL", "BUY", 1))
+    leftovers = list(broker.path.parent.glob("*.tmp*"))
+    assert leftovers == []  # temp file renamed away, none left behind
+    # and the saved file is valid JSON
+    import json as _j
+    _j.loads(broker.path.read_text())

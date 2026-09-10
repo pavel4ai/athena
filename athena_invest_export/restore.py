@@ -37,6 +37,7 @@ def _athena_home() -> Path:
 COMPONENTS = [
     ("athena_invest", "athena_invest"),
     ("plugins/schwab_marketdata", "plugins/schwab_marketdata"),
+    ("plugins/account_preview", "plugins/account_preview"),
     ("scripts", "scripts"),
 ]
 

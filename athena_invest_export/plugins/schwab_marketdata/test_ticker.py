@@ -5,12 +5,15 @@ from __future__ import annotations
 import os
 import sys
 import time
+from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).parents[3]))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from schwab_marketdata import ticker  # noqa: E402
+from athena_cli import status_lines  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -49,3 +52,15 @@ def test_refresh_countdown_clamps_at_zero(monkeypatch):
     monkeypatch.setattr(ticker.time, "time", lambda: now)
 
     assert ticker._refresh_countdown() == "0s"
+
+
+def test_ticker_registers_through_shared_status_lines_registry():
+    original = list(status_lines._PROVIDERS)
+    status_lines._PROVIDERS.clear()
+    try:
+        assert ticker.register_with_cli() is True
+        assert status_lines.get_supplemental_status_providers() == [
+            ticker._styled_fragments
+        ]
+    finally:
+        status_lines._PROVIDERS[:] = original

@@ -1,0 +1,61 @@
+name: Frontend tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: TUI Vitest
+            command: npm run --prefix ui-tui test
+            python: true
+          - name: Web Vitest
+            command: npm run --prefix web test
+          - name: Desktop Vitest
+            command: npm run --prefix apps/desktop test:ui
+          - name: Desktop Electron node tests
+            command: npm run --prefix apps/desktop test:desktop:platforms
+
+    name: ${{ matrix.name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Install uv
+        if: matrix.python
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install Python test dependencies
+        if: matrix.python
+        run: |
+          uv python install 3.11
+          uv sync --locked --python 3.11 --extra dev
+
+      - name: Run ${{ matrix.name }}
+        run: ${{ matrix.command }}
+        env:
+          PYTHON: ${{ github.workspace }}/.venv/bin/python

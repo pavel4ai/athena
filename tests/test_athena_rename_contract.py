@@ -21,6 +21,16 @@ def _old_brand_terms() -> tuple[str, ...]:
     )
 
 
+def _allowed_external_brand_terms() -> dict[str, tuple[str, ...]]:
+    lower = _old_brand_terms()[0]
+    return {
+        "package-lock.json": (
+            f"{lower}-parser",
+            f"{lower}-estree",
+        ),
+    }
+
+
 def test_project_metadata_exposes_athena_entrypoints_only():
     data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
@@ -60,10 +70,12 @@ def test_no_old_brand_references_remain_in_project_files():
         "__pycache__",
     }
     forbidden = _old_brand_terms()
+    allowed_external = _allowed_external_brand_terms()
     offenders: list[str] = []
 
     for path in REPO_ROOT.rglob("*"):
-        relative_parts = path.relative_to(REPO_ROOT).parts
+        relative = path.relative_to(REPO_ROOT)
+        relative_parts = relative.parts
         if any(part in skipped_dirs for part in relative_parts):
             continue
         if relative_parts and relative_parts[0] in {"build", "dist"}:
@@ -80,7 +92,9 @@ def test_no_old_brand_references_remain_in_project_files():
             text = data.decode("utf-8")
         except UnicodeDecodeError:
             continue
+        for allowed in allowed_external.get(relative.as_posix(), ()):
+            text = text.replace(allowed, "")
         if any(term in text for term in forbidden):
-            offenders.append(str(path.relative_to(REPO_ROOT)))
+            offenders.append(str(relative))
 
     assert not offenders

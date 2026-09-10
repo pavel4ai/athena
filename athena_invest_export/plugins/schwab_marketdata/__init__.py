@@ -203,10 +203,15 @@ def schwab_accounts(args: Dict[str, Any], **kwargs) -> str:
 
 
 def schwab_token_health(args: Dict[str, Any], **kwargs) -> str:
-    """Tool handler: report OAuth token health for the re-auth cron/alerts."""
+    """Tool handler: report OAuth token health for the re-auth cron/alerts.
+
+    Pass probe=True to actually verify with Schwab (real refresh) rather than
+    trusting the local expiry clock, which cannot see a server-side revoke.
+    """
     try:
         from .oauth import token_health
-        return json.dumps({"success": True, **token_health()})
+        probe = bool(args.get("probe", False))
+        return json.dumps({"success": True, **token_health(probe=probe)})
     except Exception as exc:
         return json.dumps({"success": False, "error": str(exc)})
 
@@ -233,9 +238,21 @@ SCHWAB_TOKEN_HEALTH_SCHEMA = {
     "description": (
         "Check Schwab OAuth token health: whether the access token is valid, "
         "whether the 7-day refresh token is still valid, and how long until it "
-        "expires. Use to decide if a manual re-consent (CAG/LMS) is needed."
+        "expires. Use to decide if a manual re-consent (CAG/LMS) is needed. "
+        "Pass probe=true to VERIFY against Schwab with a real refresh (catches "
+        "a server-side revoked/rotated token that the local expiry clock can't "
+        "see); probe=false (default) is a cheap clock-only check."
     ),
-    "parameters": {"type": "object", "properties": {}},
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "probe": {
+                "type": "boolean",
+                "description": "If true, verify with Schwab via a real refresh "
+                               "instead of trusting the local expiry clock.",
+            },
+        },
+    },
 }
 
 
@@ -260,15 +277,32 @@ def schwab_place_order(args: Dict[str, Any], **kwargs) -> str:
         v = trader.validate_order(order)
         if not v["valid"]:
             return json.dumps({"success": False, "error": "Invalid order", "details": v["errors"]})
+        # Idempotency key: use caller-supplied, else derive a stable hash from
+        # cohort + order payload so a retry / double-fired cron cannot double-fill.
+        idem = args.get("idempotency_key")
+        if not idem:
+            import hashlib
+            basis = json.dumps({"cohort": cohort, "order": order}, sort_keys=True)
+            idem = "auto-" + hashlib.sha256(basis.encode()).hexdigest()[:16]
         if mode.is_mock():
             if not cohort:
                 return json.dumps({"success": False, "error": "Mock mode needs 'cohort'."})
             from .mock_broker import MockBroker
-            result = MockBroker(cohort).place_order(account_hash, order)
-            return json.dumps({"success": True, "mode": "mock", **result})
-        # live
-        result = trader.place_order(account_hash, order)
-        return json.dumps({"success": True, "mode": "live", **result})
+            result = MockBroker(cohort).place_order(account_hash, order, idempotency_key=idem)
+            ok = result.get("status") != "REJECTED"
+            return json.dumps({"success": ok, "mode": "mock", **result})
+        # LIVE — route through the money-safe executor, NOT trader.place_order
+        # directly. The executor enforces kill-switch, mode, account allow-list,
+        # idempotency, daily limit, hash confirmation, and event-logging. It
+        # fails closed on any doubt. account_suffix names which real account to
+        # trade (e.g. "568" = Athena Jul 1 2026 — the only cleared account).
+        from . import live_executor
+        exec_args = {
+            "account_suffix": args.get("account_suffix"),
+            "idempotency_key": idem,
+        }
+        result = live_executor.place_live_order(order, exec_args)
+        return json.dumps(result)
     except Exception as exc:
         logger.exception("schwab_place_order failed")
         return json.dumps({"success": False, "error": str(exc)})
@@ -311,18 +345,24 @@ def schwab_mock_admin(args: Dict[str, Any], **kwargs) -> str:
 SCHWAB_PLACE_ORDER_SCHEMA = {
     "name": "schwab_place_order",
     "description": (
-        "Place a Schwab order. Routes to the MOCK paper broker or the LIVE Trader "
-        "API depending on the current mode (mock by default). REQUIRES a recorded "
-        "human approval upstream — this is the execution step. Mock fills use live "
-        "quotes (market at ask/bid, limit when crossable). Provide a validated "
-        "order payload (use the trader order builder shape)."
+        "Place a Schwab order. Routes to the MOCK paper broker or the LIVE "
+        "money-safe executor depending on the current mode (mock by default). "
+        "REQUIRES a recorded human approval upstream — this is the execution "
+        "step. In LIVE mode the order goes through a fail-closed executor that "
+        "enforces a kill-switch, an account allow-list, idempotency, a daily "
+        "order limit, and account-hash confirmation, and logs every event; it "
+        "REJECTS (never silently drops) anything that fails a gate. For LIVE "
+        "orders you MUST pass account_suffix naming which real account to trade "
+        "(only allow-listed accounts are permitted). Mock fills use live quotes."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "cohort": {"type": "string", "description": "Cohort name (required in mock)."},
-            "account_hash": {"type": "string", "description": "Live account hash (live mode)."},
+            "account_hash": {"type": "string", "description": "Live account hash (optional; the live executor resolves it from account_suffix)."},
+            "account_suffix": {"type": "string", "description": "LIVE only: display suffix of the target account (e.g. '568'). Must be on the executor allow-list or the order is rejected."},
             "order": {"type": "object", "description": "Schwab order payload (orderType, orderLegCollection, ...)."},
+            "idempotency_key": {"type": "string", "description": "Optional stable key; a repeat with the same key+payload will not double-place."},
         },
         "required": ["order"],
     },
@@ -354,7 +394,7 @@ def register(ctx) -> None:
     """Plugin entry point — register the token-gated market-data + account tools."""
     ctx.register_tool(
         name="schwab_quote",
-        toolset="schwab",
+        toolset="schwab_readonly",
         schema=SCHWAB_QUOTE_SCHEMA,
         handler=schwab_quote,
         check_fn=_credentials_present,   # zero footprint until credentials exist
@@ -364,7 +404,7 @@ def register(ctx) -> None:
     )
     ctx.register_tool(
         name="schwab_accounts",
-        toolset="schwab",
+        toolset="schwab_readonly",
         schema=SCHWAB_ACCOUNTS_SCHEMA,
         handler=schwab_accounts,
         check_fn=_credentials_present,
@@ -374,7 +414,7 @@ def register(ctx) -> None:
     )
     ctx.register_tool(
         name="schwab_token_health",
-        toolset="schwab",
+        toolset="schwab_readonly",
         schema=SCHWAB_TOKEN_HEALTH_SCHEMA,
         handler=schwab_token_health,
         check_fn=_credentials_present,
@@ -384,7 +424,7 @@ def register(ctx) -> None:
     )
     ctx.register_tool(
         name="schwab_place_order",
-        toolset="schwab",
+        toolset="schwab_execute",
         schema=SCHWAB_PLACE_ORDER_SCHEMA,
         handler=schwab_place_order,
         check_fn=_credentials_present,
@@ -394,7 +434,7 @@ def register(ctx) -> None:
     )
     ctx.register_tool(
         name="schwab_mock_admin",
-        toolset="schwab",
+        toolset="schwab_admin",
         schema=SCHWAB_MOCK_ADMIN_SCHEMA,
         handler=schwab_mock_admin,
         check_fn=_credentials_present,
@@ -413,4 +453,4 @@ def register(ctx) -> None:
                 ticker.start_ticker()
                 logger.info("schwab_marketdata: live ticker bar enabled.")
     except Exception as exc:
-        logger.debug("schwab_marketdata: ticker setup skipped: %s", exc)
+        logger.warning("schwab_marketdata: ticker setup skipped: %s", exc)

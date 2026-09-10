@@ -13,6 +13,10 @@
       "restore_to": "~/.athena/plugins/schwab_marketdata",
       "note": "Schwab market-data + OAuth + trader plugin. __pycache__ excluded. Token-gated; inert until credentials present."
     },
+    "account_preview_plugin": {
+      "restore_to": "~/.athena/plugins/account_preview",
+      "note": "Account-isolated read-only and preview-only Schwab toolsets. No order-placement handler."
+    },
     "scripts": {
       "restore_to": "~/.athena/scripts",
       "note": "schwab_token_health_check.py watchdog used by the token-health cron."
@@ -23,6 +27,8 @@
     "keys": [
       "SCHWAB_APP_KEY",
       "SCHWAB_APP_SECRET",
+      "SCHWAB_TRADER_APP_KEY",
+      "SCHWAB_TRADER_APP_SECRET",
       "SCHWAB_CALLBACK_URL"
     ],
     "note": "Secrets are NOT exported. Re-add them on the new host, then re-run the OAuth consent flow (plugin README) to mint fresh tokens. Old tokens do not transfer."
