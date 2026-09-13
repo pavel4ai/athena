@@ -4,14 +4,14 @@ import { useCallback, useEffect } from 'react'
 
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { $pluginRecords } from '@/contrib/plugins-store'
-import { getEnvVars, getHermesConfigSchema } from '@/hermes'
+import { getEnvVars, getAthenaConfigSchema } from '@/athena'
 import { useI18n } from '@/i18n'
 import { type IconComponent, Monitor, Package, Palette, Settings2, Wrench } from '@/lib/icons'
 import { $agentPlugins, isDesktopRelevantPlugin, loadAgentPlugins } from '@/store/agent-plugins'
 import { $gatewayState } from '@/store/session'
 import { TRANSLUCENCY_SUPPORTED } from '@/store/translucency'
 
-import { useHermesConfigRecord } from '../hooks/use-config-record'
+import { useAthenaConfigRecord } from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 
 import {
@@ -40,11 +40,11 @@ export interface PluginSearchEntry {
  */
 export function useSettingsSearchCatalog(enabled: boolean) {
   const { t } = useI18n()
-  const configQuery = useHermesConfigRecord()
+  const configQuery = useAthenaConfigRecord()
 
   const schemaQuery = useQuery({
-    queryKey: ['hermes-config-schema'],
-    queryFn: () => getHermesConfigSchema(),
+    queryKey: ['athena-config-schema'],
+    queryFn: () => getAthenaConfigSchema(),
     enabled,
     staleTime: 5 * 60 * 1000
   })

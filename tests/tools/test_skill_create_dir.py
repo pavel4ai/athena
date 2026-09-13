@@ -14,13 +14,13 @@ import pytest
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    """Fresh HERMES_HOME with an empty local skills dir."""
-    home = tmp_path / ".hermes"
+    """Fresh ATHENA_HOME with an empty local skills dir."""
+    home = tmp_path / ".athena"
     (home / "skills").mkdir(parents=True)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("ATHENA_HOME", str(home))
 
-    import hermes_constants
-    monkeypatch.setattr(hermes_constants, "_hermes_home_cache", None, raising=False)
+    import athena_constants
+    monkeypatch.setattr(athena_constants, "_athena_home_cache", None, raising=False)
 
     from agent import skill_utils as su
     su._external_dirs_cache_clear()

@@ -1,24 +1,24 @@
-"""CLI entry point for the hermes-agent ACP adapter.
+"""CLI entry point for the athena-agent ACP adapter.
 
-Loads ``~/.hermes/.env``, routes logging to stderr (stdout is reserved for ACP
+Loads ``~/.athena/.env``, routes logging to stderr (stdout is reserved for ACP
 JSON-RPC), and starts the ACP agent server.
 
 Usage::
 
-    python -m acp_adapter.entry   # or: hermes acp / hermes-acp
+    python -m acp_adapter.entry   # or: athena acp / athena-acp
 """
 
-# IMPORTANT: hermes_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See hermes_bootstrap.py for full rationale.
+# IMPORTANT: athena_bootstrap must be the very first import — UTF-8 stdio
+# on Windows.  No-op on POSIX.  See athena_bootstrap.py for full rationale.
 try:
-    import hermes_bootstrap  # noqa: F401
+    import athena_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    # Partial ``hermes update`` (git-reset landed, ``uv pip install -e .`` did not):
+    # Partial ``athena update`` (git-reset landed, ``uv pip install -e .`` did not):
     # UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
     pass
 else:
-    # Stop a ``utils/``/``proxy/``/``ui/`` package in the launch cwd from shadowing Hermes modules.
-    hermes_bootstrap.harden_import_path()
+    # Stop a ``utils/``/``proxy/``/``ui/`` package in the launch cwd from shadowing Athena modules.
+    athena_bootstrap.harden_import_path()
 
 import argparse
 import asyncio
@@ -26,7 +26,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from athena_constants import get_athena_home
 
 
 # Liveness-probe methods outside the ACP schema. The router correctly answers JSON-RPC -32601
@@ -72,26 +72,26 @@ def _setup_logging() -> None:
 
 
 def _load_env() -> None:
-    """Load .env from HERMES_HOME (default ``~/.hermes``)."""
-    from hermes_cli.env_loader import load_hermes_dotenv
+    """Load .env from ATHENA_HOME (default ``~/.athena``)."""
+    from athena_cli.env_loader import load_athena_dotenv
 
-    hermes_home = get_hermes_home()
-    loaded = load_hermes_dotenv(hermes_home=hermes_home)
+    athena_home = get_athena_home()
+    loaded = load_athena_dotenv(athena_home=athena_home)
     log = logging.getLogger(__name__)
     for env_file in loaded or ():
         log.info("Loaded env from %s", env_file)
     if not loaded:
-        log.info("No .env found at %s, using system env", hermes_home / ".env")
+        log.info("No .env found at %s, using system env", athena_home / ".env")
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="hermes-acp", description="Run Hermes Agent as an ACP stdio server.")
-    parser.add_argument("--version", action="store_true", help="Print Hermes version and exit")
+    parser = argparse.ArgumentParser(prog="athena-acp", description="Run Athena Agent as an ACP stdio server.")
+    parser.add_argument("--version", action="store_true", help="Print Athena version and exit")
     parser.add_argument("--check", action="store_true", help="Verify ACP dependencies and adapter imports, then exit")
     parser.add_argument("--setup", action="store_true",
-                        help="Run interactive Hermes provider/model setup for ACP terminal auth")
+                        help="Run interactive Athena provider/model setup for ACP terminal auth")
     parser.add_argument("--setup-browser", action="store_true",
-                        help="Install agent-browser + Playwright Chromium into ~/.hermes/node/ "
+                        help="Install agent-browser + Playwright Chromium into ~/.athena/node/ "
                              "for browser tool support. Idempotent.")
     parser.add_argument("--yes", "-y", action="store_true", dest="assume_yes",
                         help="Accept all prompts (currently used by --setup-browser to skip the "
@@ -100,25 +100,25 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def _print_version() -> None:
-    from hermes_cli import __version__ as hermes_version
+    from athena_cli import __version__ as athena_version
 
-    print(hermes_version)
+    print(athena_version)
 
 
 def _run_check() -> None:
     import acp  # noqa: F401
-    from acp_adapter.server import HermesACPAgent  # noqa: F401
+    from acp_adapter.server import AthenaACPAgent  # noqa: F401
 
-    print("Hermes ACP check OK")
+    print("Athena ACP check OK")
 
 
 def _run_setup() -> None:
-    from hermes_cli.main import main as hermes_main
+    from athena_cli.main import main as athena_main
 
     old_argv = sys.argv[:]
     try:
-        sys.argv = [old_argv[0] if old_argv else "hermes", "model"]
-        hermes_main()
+        sys.argv = [old_argv[0] if old_argv else "athena", "model"]
+        athena_main()
     finally:
         sys.argv = old_argv
 
@@ -144,7 +144,7 @@ _SETUP_BROWSER_STEPS = (
 def _run_setup_browser(assume_yes: bool = False) -> int:
     """Bootstrap agent-browser + Chromium via dep_ensure -> install.{sh,ps1}
     --ensure (shared with the runtime lazy installer). Returns 0 on success, 1 on failure."""
-    from hermes_cli.dep_ensure import ensure_dependency
+    from athena_cli.dep_ensure import ensure_dependency
 
     try:
         for dep, failure_msg in _SETUP_BROWSER_STEPS:
@@ -172,7 +172,7 @@ def main(argv: list[str] | None = None) -> None:
     _load_env()
 
     logger = logging.getLogger(__name__)
-    logger.info("Starting hermes-agent ACP adapter")
+    logger.info("Starting athena-agent ACP adapter")
 
     # Ensure the project root is on sys.path so ``from run_agent import AIAgent`` works
     project_root = str(Path(__file__).resolve().parent.parent)
@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> None:
         sys.path.insert(0, project_root)
 
     import acp
-    from .server import HermesACPAgent
+    from .server import AthenaACPAgent
 
     # MCP discovery from config.yaml runs in a background daemon thread so the ACP server is
     # responsive immediately (blocking here cost 2-5 s); per-session MCP servers registered via
@@ -188,15 +188,15 @@ def main(argv: list[str] | None = None) -> None:
     # Previously this blocked asyncio.run() for 2-5 s. (ACP also registers per-session MCP servers
     # dynamically via asyncio.to_thread inside the event loop; that path is unaffected.)  Moved from
     # model_tools.py module scope to avoid freezing the gateway's loop on lazy import (#16856).
-    if os.environ.get("HERMES_ACP_SKIP_CONFIGURED_MCP", "").strip() != "1":
+    if os.environ.get("ATHENA_ACP_SKIP_CONFIGURED_MCP", "").strip() != "1":
         try:
-            from hermes_cli.mcp_startup import start_background_mcp_discovery
+            from athena_cli.mcp_startup import start_background_mcp_discovery
 
             start_background_mcp_discovery(logger=logger, thread_name="acp-mcp-discovery")
         except Exception:
             logger.debug("MCP tool discovery failed at ACP startup", exc_info=True)
 
-    agent = HermesACPAgent()
+    agent = AthenaACPAgent()
     try:
         asyncio.run(acp.run_agent(agent, use_unstable_protocol=True))
     except KeyboardInterrupt:

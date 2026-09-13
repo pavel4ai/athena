@@ -3,7 +3,7 @@ import { atom } from 'nanostores'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { HermesGateway } from '@/hermes'
+import type { AthenaGateway } from '@/athena'
 import { $gateway } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
 
@@ -46,8 +46,8 @@ afterEach(() => {
 
 describe('ChatRoutesSurface', () => {
   it('passes the live gateway after an open-to-open profile switch', () => {
-    const gatewayA = { id: 'a' } as unknown as HermesGateway
-    const gatewayB = { id: 'b' } as unknown as HermesGateway
+    const gatewayA = { id: 'a' } as unknown as AthenaGateway
+    const gatewayB = { id: 'b' } as unknown as AthenaGateway
 
     $gateway.set(gatewayA)
     const actions = { getGateway: () => $gateway.get() } as unknown as WiringActions

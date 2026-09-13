@@ -23,7 +23,7 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
-import hermes_cli.model_selection_guards as guards
+import athena_cli.model_selection_guards as guards
 import tui_gateway.server as srv
 
 GUARDED_MODEL = "muse-spark-1.2-contributor"
@@ -32,10 +32,10 @@ GUARD_MESSAGE = "CONTRIBUTOR TIER: this model may train on your data."
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
-    return hermes_home
+    athena_home = tmp_path / ".athena"
+    athena_home.mkdir()
+    monkeypatch.setenv("ATHENA_HOME", str(athena_home))
+    return athena_home
 
 
 @pytest.fixture

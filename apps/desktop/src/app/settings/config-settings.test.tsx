@@ -5,15 +5,15 @@ import { createRef } from 'react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const getHermesConfigRecord = vi.fn()
-const getHermesConfigSchema = vi.fn()
-const saveHermesConfig = vi.fn()
+const getAthenaConfigRecord = vi.fn()
+const getAthenaConfigSchema = vi.fn()
+const saveAthenaConfig = vi.fn()
 const getElevenLabsVoices = vi.fn()
 
-vi.mock('@/hermes', () => ({
-  getHermesConfigRecord: () => getHermesConfigRecord(),
-  getHermesConfigSchema: () => getHermesConfigSchema(),
-  saveHermesConfig: (config: unknown, profile?: string) => saveHermesConfig(config, profile),
+vi.mock('@/athena', () => ({
+  getAthenaConfigRecord: () => getAthenaConfigRecord(),
+  getAthenaConfigSchema: () => getAthenaConfigSchema(),
+  saveAthenaConfig: (config: unknown, profile?: string) => saveAthenaConfig(config, profile),
   getElevenLabsVoices: () => getElevenLabsVoices(),
   setApiRequestProfile: () => {}
 }))
@@ -38,8 +38,8 @@ vi.mock('@/store/projects', () => ({
 
 beforeEach(() => {
   getElevenLabsVoices.mockResolvedValue({ available: false })
-  getHermesConfigSchema.mockResolvedValue({ fields: {} })
-  saveHermesConfig.mockResolvedValue({ ok: true })
+  getAthenaConfigSchema.mockResolvedValue({ fields: {} })
+  saveAthenaConfig.mockResolvedValue({ ok: true })
 })
 
 afterEach(() => {
@@ -65,7 +65,7 @@ async function renderConfigSettings() {
 
 describe('ConfigSettings autosave', () => {
   it('sends a later revert instead of diffing it away against the stale page-load baseline', async () => {
-    getHermesConfigRecord.mockResolvedValue({ checkpoints: { enabled: false }, other: 'untouched' })
+    getAthenaConfigRecord.mockResolvedValue({ checkpoints: { enabled: false }, other: 'untouched' })
 
     vi.useFakeTimers({ shouldAdvanceTime: true })
 
@@ -78,19 +78,19 @@ describe('ConfigSettings autosave', () => {
       toggle.click()
       await vi.advanceTimersByTimeAsync(700)
 
-      await vi.waitFor(() => expect(saveHermesConfig).toHaveBeenCalledTimes(1))
-      expect(saveHermesConfig.mock.calls[0][0]).toEqual({ checkpoints: { enabled: true } })
+      await vi.waitFor(() => expect(saveAthenaConfig).toHaveBeenCalledTimes(1))
+      expect(saveAthenaConfig.mock.calls[0][0]).toEqual({ checkpoints: { enabled: true } })
 
       // Revert: flip it back to its original value and let autosave fire again.
       toggle.click()
       await vi.advanceTimersByTimeAsync(700)
 
-      await vi.waitFor(() => expect(saveHermesConfig).toHaveBeenCalledTimes(2))
+      await vi.waitFor(() => expect(saveAthenaConfig).toHaveBeenCalledTimes(2))
       // Must still explicitly send the reverted value — diffing against the
       // never-advanced page-load baseline would produce an empty patch here
       // (the field is back to its original value) and leave disk stuck at
       // `enabled: true` from the first save.
-      expect(saveHermesConfig.mock.calls[1][0]).toEqual({ checkpoints: { enabled: false } })
+      expect(saveAthenaConfig.mock.calls[1][0]).toEqual({ checkpoints: { enabled: false } })
     } finally {
       vi.useRealTimers()
     }

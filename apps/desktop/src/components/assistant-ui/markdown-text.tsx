@@ -111,7 +111,7 @@ function useOpenMediaFile(path: string) {
   const [openFailed, setOpenFailed] = useState(false)
 
   const open = () => {
-    if (window.hermesDesktop && isRemoteGateway()) {
+    if (window.athenaDesktop && isRemoteGateway()) {
       setOpenFailed(false)
       void downloadGatewayMediaFile(path).catch(() => setOpenFailed(true))
     } else {
@@ -334,7 +334,7 @@ function MarkdownLink({ children, className, href, ...props }: ComponentProps<'a
 
   // Bare autolink → inline rich embed when a provider matches. Labeled links
   // (`[watch](url)`) stay plain. Desktop only (webview / iframe renderers).
-  if (window.hermesDesktop && text && normalizeExternalUrl(text) === target) {
+  if (window.athenaDesktop && text && normalizeExternalUrl(text) === target) {
     const embed = detectEmbed(target)
 
     if (embed) {

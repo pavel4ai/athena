@@ -67,6 +67,42 @@ def test_historical_upstream_links_are_preserved():
     assert transform._transform_text(source) == source
 
 
+def test_external_model_identifiers_are_preserved():
+    transform = _load_transform()
+    source = (
+        f"NousResearch/{transform.OLD_TITLE}-3-Llama-3.1-70B "
+        f"nousresearch/{transform.OLD_LOWER}-4-405b "
+        f"{transform.OLD_TITLE}-Agent-Thinking-GLM-4.7-SFT2"
+    )
+
+    assert transform._transform_text(source) == source
+
+
+def test_product_repository_urls_move_to_athena_origin():
+    transform = _load_transform()
+    repository = f"NousResearch/{transform.OLD_TITLE}-Agent"
+    source = f"https://github.com/{repository}.git"
+
+    assert transform._transform_text(source) == (
+        "https://github.com/pavel4ai/athena.git"
+    )
+
+
+def test_repair_restores_external_model_ids_after_legacy_transform():
+    transform = _load_transform()
+    source = (
+        "NousResearch/Hermes-3-Llama-3.1-70B "
+        "nousresearch/hermes-4-405b "
+        "Hermes-Agent-Thinking-GLM-4.7-SFT2"
+    )
+
+    assert transform._repair_external_model_text(source) == (
+        "NousResearch/Hermes-3-Llama-3.1-70B "
+        "nousresearch/hermes-4-405b "
+        "Hermes-Agent-Thinking-GLM-4.7-SFT2"
+    )
+
+
 def test_product_identity_and_runtime_names_are_replaced():
     transform = _load_transform()
     source = (

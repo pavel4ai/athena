@@ -10,10 +10,10 @@ const gatewayMocks = vi.hoisted(() => {
   return { instances }
 })
 
-vi.mock('@/hermes', async importActual => ({
+vi.mock('@/athena', async importActual => ({
   ...(await importActual<Record<string, unknown>>()),
   setApiRequestConnection: vi.fn(),
-  HermesGateway: class {
+  AthenaGateway: class {
     connectionState = 'closed'
     private eventHandlers = new Set<
       (event: { payload?: Record<string, unknown>; session_id?: string; type: string }) => void
@@ -79,7 +79,7 @@ const {
 const { isSessionOwnerResolutionError } = await import('./session-owner-resolution')
 
 function installDesktop(): void {
-  ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = {
+  ;(window as unknown as { athenaDesktop: unknown }).athenaDesktop = {
     getConnection: vi.fn(async (profile: string) => ({
       authMode: 'token',
       mode: 'local',
@@ -125,7 +125,7 @@ afterEach(() => {
   clearAllPrompts()
   $activeSessionId.set(null)
   $gateway.set(null)
-  delete (window as { hermesDesktop?: unknown }).hermesDesktop
+  delete (window as { athenaDesktop?: unknown }).athenaDesktop
 })
 
 describe('profile-only secondary approval ownership', () => {
@@ -181,7 +181,7 @@ describe('profile-only secondary approval ownership', () => {
     expect(knownOwnerForSession('rt-retired')).toBeUndefined()
     expect(knownOwnerForSession('rt-durable')).toEqual(exact)
     expect(knownOwnerForSession('rt-remote')).toEqual(exact)
-    const getConnection = window.hermesDesktop!.getConnection
+    const getConnection = window.athenaDesktop!.getConnection
     vi.mocked(getConnection).mockClear()
     await expect(requestForOwnedSession('rt-retired', vi.fn() as never, 'approval.respond', {})).rejects.toSatisfy(
       isSessionOwnerResolutionError

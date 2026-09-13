@@ -228,7 +228,7 @@ class GatewayAuthorizationMixin:
     def _adapters_for_profile(self, profile: Optional[str]) -> dict:
         """The live adapter map *profile* may deliver through: ``_profile_adapters[p]`` for a
         secondary, ``self.adapters`` only for the primary/default. ``_profile_adapters`` is consulted
-        BEFORE the active profile name: multiplex turns override ``HERMES_HOME`` so
+        BEFORE the active profile name: multiplex turns override ``ATHENA_HOME`` so
         ``_active_profile_name()`` reports the secondary profile mid-turn, and treating it as primary
         would hand it the default bot. A named profile with no map gets ``{}`` — fail closed: a
         secondary whose adapter failed to connect must NOT fall back to the default profile's adapter
@@ -239,7 +239,7 @@ class GatewayAuthorizationMixin:
         profile_adapters = self._profile_adapters_map()
         if profile_name in profile_adapters:
             return profile_adapters[profile_name]
-        # Identity captured at construction, not the per-turn HERMES_HOME-derived name.
+        # Identity captured at construction, not the per-turn ATHENA_HOME-derived name.
         primary_profile = getattr(self, "_primary_profile_name", None)
         if not primary_profile:
             with contextlib.suppress(Exception):

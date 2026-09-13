@@ -1,5 +1,5 @@
-import { getGlobalModelOptions, type HermesGateway, type ModelOptionsResponse } from '@/hermes'
-import type { ModelOptionProvider } from '@/types/hermes'
+import { getGlobalModelOptions, type AthenaGateway, type ModelOptionsResponse } from '@/athena'
+import type { ModelOptionProvider } from '@/types/athena'
 
 type CatalogProviderIdentity = Pick<ModelOptionProvider, 'aliases' | 'name' | 'slug'>
 
@@ -174,7 +174,7 @@ interface ModelOptionsRequest {
    *  surfaces). Chat pickers default to true so only explicitly configured
    *  providers are listed (#56974). */
   explicitOnly?: boolean
-  gateway?: HermesGateway
+  gateway?: AthenaGateway
   /** Owner-routed RPC. When set, catalog reads hit this dispatcher instead of
    *  `gateway.request` — a tile's model menu must not query the ambient
    *  chrome socket (#93892). */

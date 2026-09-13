@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getHermesConfigRecord, type HermesConfigRecord, saveHermesConfig } from '@/hermes'
+import { getAthenaConfigRecord, type AthenaConfigRecord, saveAthenaConfig } from '@/athena'
 
 import { TRANSLATIONS } from './catalog'
 import {
@@ -16,26 +16,26 @@ import type { Locale, Translations } from './types'
 export { LOCALE_META } from './languages'
 
 export interface I18nConfigClient {
-  getConfig: () => Promise<HermesConfigRecord>
-  saveConfig: (config: HermesConfigRecord) => Promise<{ ok: boolean }>
+  getConfig: () => Promise<AthenaConfigRecord>
+  saveConfig: (config: AthenaConfigRecord) => Promise<{ ok: boolean }>
 }
 
 const defaultConfigClient: I18nConfigClient = {
   getConfig: () => {
-    if (typeof window === 'undefined' || !window.hermesDesktop?.api) {
+    if (typeof window === 'undefined' || !window.athenaDesktop?.api) {
       return Promise.resolve({})
     }
 
     // Merged defaults make an unset language indistinguishable from saved English.
     // Older backends ignore the option and keep returning English as before.
-    return getHermesConfigRecord(undefined, { includeDefaults: false })
+    return getAthenaConfigRecord(undefined, { includeDefaults: false })
   },
   saveConfig: config => {
-    if (typeof window === 'undefined' || !window.hermesDesktop?.api) {
+    if (typeof window === 'undefined' || !window.athenaDesktop?.api) {
       return Promise.resolve({ ok: true })
     }
 
-    return saveHermesConfig(config, undefined, { preserveLanguage: true })
+    return saveAthenaConfig(config, undefined, { preserveLanguage: true })
   }
 }
 
@@ -43,11 +43,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export function getConfigDisplayLanguage(config: HermesConfigRecord): unknown {
+export function getConfigDisplayLanguage(config: AthenaConfigRecord): unknown {
   return isRecord(config.display) ? config.display.language : undefined
 }
 
-export function withConfigDisplayLanguage(config: HermesConfigRecord, locale: Locale): HermesConfigRecord {
+export function withConfigDisplayLanguage(config: AthenaConfigRecord, locale: Locale): AthenaConfigRecord {
   const display = isRecord(config.display) ? config.display : {}
 
   return {
@@ -158,7 +158,7 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
 
           // Keep inference unsaved so OS language changes apply on the next boot
           // until the user explicitly picks a language.
-          const machineProfile = await window.hermesDesktop?.getMachineProfile?.().catch(() => null)
+          const machineProfile = await window.athenaDesktop?.getMachineProfile?.().catch(() => null)
 
           if (!cancelled && !userLocaleRef.current) {
             setLocaleState(resolveInitialLocale(undefined, machineProfile?.locale))

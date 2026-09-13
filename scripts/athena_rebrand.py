@@ -28,6 +28,34 @@ _EXACT_PROTECTED_TERMS = (
     f"{OLD_LOWER}.shared_metrics",
 )
 
+_EXTERNAL_MODEL_PREFIX = re.compile(
+    rf"\b(?:{OLD_TITLE}|{OLD_LOWER}|{OLD_UPPER})"
+    r"(?:-Agent-Thinking|[- ](?:3|4)|3)"
+)
+
+_PRODUCT_REPOSITORY_REPLACEMENTS = (
+    (f"NousResearch/{NEW_TITLE}-Agent", "pavel4ai/athena"),
+    (f"NousResearch/{NEW_LOWER}-agent", "pavel4ai/athena"),
+)
+
+_EXTERNAL_MODEL_REPAIRS = (
+    (f"{NEW_TITLE}-Agent-Thinking", f"{OLD_TITLE}-Agent-Thinking"),
+    (f"{NEW_LOWER}-agent-thinking", f"{OLD_LOWER}-agent-thinking"),
+    (f"{NEW_UPPER}-AGENT-THINKING", f"{OLD_UPPER}-AGENT-THINKING"),
+    (f"{NEW_TITLE}-3", f"{OLD_TITLE}-3"),
+    (f"{NEW_TITLE}-4", f"{OLD_TITLE}-4"),
+    (f"{NEW_LOWER}-3", f"{OLD_LOWER}-3"),
+    (f"{NEW_LOWER}-4", f"{OLD_LOWER}-4"),
+    (f"{NEW_UPPER}-3", f"{OLD_UPPER}-3"),
+    (f"{NEW_UPPER}-4", f"{OLD_UPPER}-4"),
+    (f"{NEW_TITLE} 3", f"{OLD_TITLE} 3"),
+    (f"{NEW_TITLE} 4", f"{OLD_TITLE} 4"),
+    (f"{NEW_LOWER} 3", f"{OLD_LOWER} 3"),
+    (f"{NEW_LOWER} 4", f"{OLD_LOWER} 4"),
+    (f"{NEW_TITLE}3", f"{OLD_TITLE}3"),
+    (f"{NEW_LOWER}3", f"{OLD_LOWER}3"),
+)
+
 _UPSTREAM_HISTORY_URL = re.compile(
     r"https://github\.com/NousResearch/"
     + re.escape(f"{OLD_TITLE}-Agent")
@@ -96,15 +124,28 @@ def _protect_text(text: str) -> tuple[str, list[tuple[str, str]]]:
     )
     for term in _EXACT_PROTECTED_TERMS:
         text = text.replace(term, preserve(term))
+    text = _EXTERNAL_MODEL_PREFIX.sub(
+        lambda match: preserve(match.group(0)),
+        text,
+    )
     return text, protected
 
 
 def _transform_text(text: str) -> str:
     protected_text, protected = _protect_text(text)
     transformed = _replace_product_tokens(protected_text)
+    for source, target in _PRODUCT_REPOSITORY_REPLACEMENTS:
+        transformed = transformed.replace(source, target)
     for marker, value in protected:
         transformed = transformed.replace(marker, value)
     return transformed
+
+
+def _repair_external_model_text(text: str) -> str:
+    repaired = text
+    for source, target in _EXTERNAL_MODEL_REPAIRS:
+        repaired = repaired.replace(source, target)
+    return repaired
 
 
 def _transformed_bytes(path: Path) -> bytes | None:
@@ -142,16 +183,36 @@ def _atomic_write(path: Path, data: bytes) -> None:
         temp_path.unlink(missing_ok=True)
 
 
-def _plan(root: Path) -> tuple[list[tuple[Path, Path]], list[Path]]:
+def _path_present(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def _resolve_worktree_paths(
+    root: Path,
+    tracked: list[Path],
+) -> tuple[dict[Path, Path], list[tuple[Path, Path]]]:
+    effective: dict[Path, Path] = {}
     renames: list[tuple[Path, Path]] = []
-    text_changes: list[Path] = []
-    tracked = _tracked_paths(root)
 
     for source in tracked:
-        relative = source.relative_to(root)
-        target = root / _target_relative_path(relative)
-        if source != target:
+        target = root / _target_relative_path(source.relative_to(root))
+        if source == target:
+            effective[source] = source
+        elif _path_present(source):
+            effective[source] = target
             renames.append((source, target))
+        elif _path_present(target):
+            effective[source] = target
+        else:
+            raise RuntimeError(f"Tracked path is missing: {source}")
+
+    return effective, renames
+
+
+def _plan(root: Path) -> tuple[list[tuple[Path, Path]], list[Path]]:
+    text_changes: list[Path] = []
+    tracked = _tracked_paths(root)
+    effective, renames = _resolve_worktree_paths(root, tracked)
 
     sources = {source for source, _target in renames}
     targets: set[Path] = set()
@@ -162,11 +223,9 @@ def _plan(root: Path) -> tuple[list[tuple[Path, Path]], list[Path]]:
             raise RuntimeError(f"Rebrand target already exists: {target}")
         targets.add(target)
 
-    target_for = dict(renames)
     for source in tracked:
-        path = target_for.get(source, source)
-        source_for_read = source if source.exists() else path
-        if _transformed_bytes(source_for_read) is not None:
+        path = effective[source]
+        if _transformed_bytes(path) is not None:
             text_changes.append(path)
 
     return renames, text_changes
@@ -174,11 +233,7 @@ def _plan(root: Path) -> tuple[list[tuple[Path, Path]], list[Path]]:
 
 def _apply(root: Path) -> tuple[int, int]:
     tracked = _tracked_paths(root)
-    renames = [
-        (source, root / _target_relative_path(source.relative_to(root)))
-        for source in tracked
-        if source != root / _target_relative_path(source.relative_to(root))
-    ]
+    effective, renames = _resolve_worktree_paths(root, tracked)
 
     sources = {source for source, _target in renames}
     targets: set[Path] = set()
@@ -189,7 +244,6 @@ def _apply(root: Path) -> tuple[int, int]:
             raise RuntimeError(f"Rebrand target already exists: {target}")
         targets.add(target)
 
-    target_for = dict(renames)
     for source, target in sorted(
         renames,
         key=lambda pair: len(pair[0].parts),
@@ -200,7 +254,7 @@ def _apply(root: Path) -> tuple[int, int]:
 
     changed = 0
     for source in tracked:
-        path = target_for.get(source, source)
+        path = effective[source]
         transformed = _transformed_bytes(path)
         if transformed is None:
             continue
@@ -210,6 +264,28 @@ def _apply(root: Path) -> tuple[int, int]:
     return len(renames), changed
 
 
+def _repair_external_model_ids(root: Path) -> int:
+    tracked = _tracked_paths(root)
+    effective, _renames = _resolve_worktree_paths(root, tracked)
+    changed = 0
+    for path in effective.values():
+        if path.is_symlink():
+            continue
+        data = path.read_bytes()
+        if b"\0" in data:
+            continue
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        repaired = _repair_external_model_text(text)
+        if repaired == text:
+            continue
+        _atomic_write(path, repaired.encode("utf-8"))
+        changed += 1
+    return changed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Apply or inspect the Athena product-identity transform.",
@@ -217,6 +293,7 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--apply", action="store_true")
+    mode.add_argument("--repair-external-model-ids", action="store_true")
     args = parser.parse_args()
 
     root = _repo_root()
@@ -227,6 +304,11 @@ def main() -> int:
             f"planned text changes: {len(text_changes)}"
         )
         return 1 if renames or text_changes else 0
+
+    if args.repair_external_model_ids:
+        changed = _repair_external_model_ids(root)
+        print(f"repaired external model files: {changed}")
+        return 0
 
     renamed, changed = _apply(root)
     print(f"renamed paths: {renamed}; changed text files: {changed}")

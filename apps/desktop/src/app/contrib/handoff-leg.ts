@@ -1,10 +1,10 @@
 /** Failed/uncertain submits retain the original session;
  * they must never close it or start a second build. */
-import { JsonRpcGatewayError } from '@hermes/shared'
+import { JsonRpcGatewayError } from '@athena/shared'
 
 import type { ClientSessionState } from '@/app/types'
 import type { HandoffPlan } from '@/components/onboarding-chat/setup-profile'
-import type { SessionMessage } from '@/types/hermes'
+import type { SessionMessage } from '@/types/athena'
 
 import type { AmbientGatewayRequest } from './session-rpc-dispatcher'
 

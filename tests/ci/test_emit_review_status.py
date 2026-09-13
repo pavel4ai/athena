@@ -22,7 +22,7 @@ def test_ci_review_status_links_to_each_sensitive_file_change():
         supply_chain=False,
         label_present=False,
         ci_review_files='[".github/workflows/ci.yml", "apps/desktop/eslint.config.mjs"]',
-        repo_url="https://github.com/nousresearch/hermes-agent",
+        repo_url="https://github.com/nousresearch/athena-agent",
         base_sha="base456",
         head_sha="abc123",
     )
@@ -41,7 +41,7 @@ def test_approved_ci_review_is_visible_info():
         supply_chain=False,
         label_present=True,
         ci_review_files='[".github/workflows/ci.yml"]',
-        repo_url="https://github.com/nousresearch/hermes-agent",
+        repo_url="https://github.com/nousresearch/athena-agent",
         base_sha="base456",
         head_sha="abc123",
     )

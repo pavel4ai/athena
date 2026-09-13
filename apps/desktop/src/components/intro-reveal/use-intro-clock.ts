@@ -88,15 +88,15 @@ export function useIntroClock() {
   const skip = useCallback(() => {
     setClockLeaving(true)
 
-    window.hermesDesktop?.introReveal?.skip?.()
+    window.athenaDesktop?.introReveal?.skip?.()
     window.setTimeout(() => {
-      void window.hermesDesktop?.introReveal?.close?.({ showMain: true }).catch(() => undefined)
+      void window.athenaDesktop?.introReveal?.close?.({ showMain: true }).catch(() => undefined)
     }, 1200)
   }, [])
 
   useEffect(() => {
     const id = window.setTimeout(() => {
-      void window.hermesDesktop?.introReveal?.close?.({ showMain: true }).catch(() => undefined)
+      void window.athenaDesktop?.introReveal?.close?.({ showMain: true }).catch(() => undefined)
     }, INTRO_DEADMAN_MS)
 
     return () => window.clearTimeout(id)
