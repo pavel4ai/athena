@@ -4,7 +4,7 @@
   "private": true,
   "version": "0.17.2",
   "description": "Native desktop shell for Athena Agent.",
-  "author": "Nous Research",
+  "author": "Futurebound Corp.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pavel4ai/athena.git"
