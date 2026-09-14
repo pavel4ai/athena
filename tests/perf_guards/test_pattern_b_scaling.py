@@ -45,6 +45,22 @@ def _min_time(fn, *, repeat: int = 5) -> float:
     return best
 
 
+def _min_paired_ratio(small_fn, large_fn, *, repeat: int = 5) -> float:
+    """Best adjacent large/small ratio so independent scheduler noise cancels."""
+    small_fn()
+    large_fn()
+    best = float("inf")
+    for _ in range(repeat):
+        t0 = time.perf_counter()
+        small_fn()
+        small = time.perf_counter() - t0
+        t0 = time.perf_counter()
+        large_fn()
+        large = time.perf_counter() - t0
+        best = min(best, large / max(small, 1e-9))
+    return best
+
+
 # ---------------------------------------------------------------------------
 # Guard 1 — streamed assistant text accumulation must be linear (#92166).
 # ---------------------------------------------------------------------------
@@ -203,9 +219,10 @@ class TestToolCallFragmentAssemblyLinear:
         return len("".join(entry["function"]["arguments_parts"]))
 
     def test_4x_fragments_cost_about_4x_time(self):
-        t_small = _min_time(lambda: self._assemble_dict_field(self.N_SMALL, self.FRAG), repeat=3)
-        t_large = _min_time(lambda: self._assemble_dict_field(self.N_LARGE, self.FRAG), repeat=3)
-        ratio = t_large / max(t_small, 1e-9)
+        ratio = _min_paired_ratio(
+            lambda: self._assemble_dict_field(self.N_SMALL, self.FRAG),
+            lambda: self._assemble_dict_field(self.N_LARGE, self.FRAG),
+        )
         assert ratio < self.MAX_RATIO, (
             f"tool-call fragment assembly is superlinear: 4x fragments cost "
             f"{ratio:.1f}x time. Fragments must be buffered in a list and "
