@@ -36,7 +36,7 @@ _IN_NIX_BUILD = os.environ.get("ATHENA_NIX_BUILD") == "1"
 _BLOCK_MESSAGE = (
     "Building wheels or sdists for athena-agent is not supported.\n"
     "Athena is distributed via the shell installer, Docker image, or Nix.\n"
-    "See: https://athena-agent.nousresearch.com/docs/getting-started/installation\n"
+    "See: https://github.com/pavel4ai/athena/docs/getting-started/installation\n"
     "\n"
     "If you are developing, use an editable install instead:\n"
     "  uv sync          # or: uv pip install -e .\n"
