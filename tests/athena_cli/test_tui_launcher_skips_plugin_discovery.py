@@ -32,6 +32,25 @@ def _install_discover_spy(monkeypatch):
             start_background_plugin_discovery=_discover,
         ),
     )
+    monkeypatch.setitem(
+        sys.modules,
+        "athena_cli.mcp_startup",
+        types.SimpleNamespace(
+            set_mcp_server_filter=lambda _value: None,
+            start_background_mcp_discovery=lambda **_kwargs: None,
+            get_mcp_server_filter=lambda: None,
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "agent.shell_hooks",
+        types.SimpleNamespace(register_from_config=lambda *_args, **_kwargs: None),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "agent.outbound_webhooks",
+        types.SimpleNamespace(register_from_config=lambda *_args, **_kwargs: None),
+    )
     return calls
 
 

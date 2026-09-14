@@ -358,7 +358,11 @@ def _process_tree_snapshot(pid: int, *, hard_kill: bool):
                 pending = [root]
                 seen = {os.getpid()}
                 known = {process.pid: process for process in descendants}
-                stop_deadline = time.monotonic() + 1.0
+                # Process-table scans and stop-state observation can exceed one
+                # second under the 16-way full-suite load. Keep the bound, but
+                # do not fall back to an incomplete snapshot while a late fork
+                # can still escape.
+                stop_deadline = time.monotonic() + 5.0
                 while pending:
                     for process in pending:
                         if process.pid in seen:
