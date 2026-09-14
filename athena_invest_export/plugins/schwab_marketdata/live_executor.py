@@ -210,6 +210,113 @@ def _seen_idempotency() -> Dict[str, Dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
+# SHA-bound human approval (P3 — never trust model-authored order arguments)
+# --------------------------------------------------------------------------- #
+_PREVIEW_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+
+
+def _preview_machine_record(text: str, preview_id: str) -> Dict[str, Any]:
+    """Return the machine record from an immutable preview, or ``{}``."""
+    for block in re.findall(r"```json\s*\n(.*?)\n```", text, re.DOTALL):
+        try:
+            record = json.loads(block)
+        except json.JSONDecodeError:
+            continue
+        if (
+            isinstance(record, dict)
+            and str(record.get("preview_id") or "") == preview_id
+        ):
+            return record
+    return {}
+
+
+def _approval_binding(
+    order: Dict[str, Any],
+    args: Dict[str, Any],
+    *,
+    suffix: str,
+    idempotency_key: str,
+) -> tuple[Optional[str], Dict[str, str]]:
+    """Validate exact user intent, claimed sidecar, preview hash, and ticket."""
+    preview_id = str(args.get("preview_id") or "").strip()
+    if not preview_id or not _PREVIEW_ID_RE.fullmatch(preview_id):
+        return "live order missing valid preview_id", {}
+
+    expected_decision = f"APPROVE {preview_id}"
+    if str(args.get("user_task") or "").strip() != expected_decision:
+        return "current user task does not exactly approve preview_id", {}
+
+    preview_dir = _schwab_dir() / "previews"
+    preview_path = preview_dir / f"{preview_id}.md"
+    state_path = preview_dir / f"{preview_id}.state.json"
+    if not preview_path.is_file() or not state_path.is_file():
+        return "approved preview or state sidecar is missing", {}
+
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        preview_bytes = preview_path.read_bytes()
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"approved preview state is unreadable: {exc}", {}
+    if not isinstance(state, dict):
+        return "approved preview state is malformed", {}
+
+    preview_sha256 = hashlib.sha256(preview_bytes).hexdigest()
+    if state.get("preview_sha256") != preview_sha256:
+        return "approved preview SHA-256 does not match sidecar", {}
+    if state.get("status") != "EXECUTING":
+        return f"approved preview is not actively claimed: {state.get('status')}", {}
+    if state.get("orders_placed") is not False:
+        return "approved preview is not in an unplaced state", {}
+    if str(state.get("account_suffix") or "") != suffix:
+        return "approved preview account does not match order account", {}
+
+    resolution = state.get("resolution")
+    if not isinstance(resolution, dict):
+        return "approved preview has no durable resolution", {}
+    claim_id = str(resolution.get("claim_id") or "").strip()
+    if not claim_id or resolution.get("decision") != expected_decision:
+        return "approved preview claim does not match user decision", {}
+    if not str(resolution.get("source") or "").lower().startswith(
+        "authenticated"
+    ):
+        return "approved preview source is not authenticated", {}
+
+    try:
+        preview_text = preview_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        return "approved preview is not UTF-8", {}
+    machine = _preview_machine_record(preview_text, preview_id)
+    if not machine:
+        return "approved preview has no matching machine record", {}
+    if str(machine.get("account_suffix") or "") != suffix:
+        return "approved preview machine record has the wrong account", {}
+
+    tickets = machine.get("orders")
+    if not isinstance(tickets, list):
+        return "approved preview has no immutable order list", {}
+    ticket = next(
+        (
+            item
+            for item in tickets
+            if isinstance(item, dict)
+            and str(item.get("idempotency_key") or "") == idempotency_key
+        ),
+        None,
+    )
+    if ticket is None:
+        return "idempotency_key is not present in the approved preview", {}
+    expected_order = ticket.get("order")
+    if not isinstance(expected_order, dict) or expected_order != order:
+        return "order payload does not match the approved immutable ticket", {}
+
+    return None, {
+        "preview_id": preview_id,
+        "preview_sha256": preview_sha256,
+        "claim_id": claim_id,
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Account-hash resolution (fail-closed: a flapping API never opens the gate)
 # --------------------------------------------------------------------------- #
 def resolve_allowed_hash(suffix: str, cfg: ExecutorConfig) -> Tuple[Optional[str], Optional[str]]:
@@ -419,8 +526,16 @@ def place_live_order(order: Dict[str, Any], args: Dict[str, Any]) -> Dict[str, A
             order_id=prior.get("order_id"), idempotent_replay=True,
         ).to_dict()
 
-    # Gate 7 removed by explicit principal instruction (2026-08-03):
-    # exact file-backed human approval is the trade-frequency authorization.
+    # Gate 7: bind this exact ticket to the current authenticated user message
+    # and an atomically claimed SHA-bound preview.
+    approval_error, approval = _approval_binding(
+        order,
+        args,
+        suffix=suffix,
+        idempotency_key=idem,
+    )
+    if approval_error:
+        return _reject(approval_error).to_dict()
 
     # Gate 8: resolve + positively confirm the account hash (fail-closed).
     account_hash, err = resolve_allowed_hash(suffix, cfg)
@@ -455,6 +570,7 @@ def place_live_order(order: Dict[str, Any], args: Dict[str, Any]) -> Dict[str, A
     _append_event({
         "type": "ORDER_INTENT", "idempotency_key": idem,
         "payload_hash": payload_hash, "account_suffix": suffix, "order": order,
+        **approval,
     })
 
     # Place the order.
@@ -496,6 +612,7 @@ def place_live_order(order: Dict[str, Any], args: Dict[str, Any]) -> Dict[str, A
         "verified": verified, "verify_note": verify_note,
         "status_class": status_class,
         "schwab_status_code": resp.get("status_code"),
+        **approval,
     })
 
     return ExecResult(

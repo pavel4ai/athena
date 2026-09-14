@@ -1,0 +1,36 @@
+# Investment Mandate template — copy to mandate/<cohort>.yaml and fill every field.
+# Athena REFUSES to construct allocations until horizon, objective,
+# risk_tolerance, tax_jurisdiction, and account_type are all set & valid.
+
+cohort: ""                 # unique cohort/account name (no spaces)
+created: ""                # ISO date
+
+# 1. Investment horizon: intraday | swing | 30day | 90day | 1year | multiyear | retirement
+horizon: ""
+
+# 2. Target objective: max_return | risk_adjusted | capital_preservation | income | benchmark_outperformance
+objective: ""
+
+# 3. Risk tolerance: low | moderate | high | aggressive
+risk_tolerance: ""
+
+# 4. Tax jurisdiction (e.g. "US-Federal+CA", or country)
+tax_jurisdiction: ""
+
+# 5. Account type: taxable | retirement | corporate | trust
+account_type: ""
+
+# Derived / linked (Athena fills these)
+horizon_class: ""          # A (0-30d) | B (30-180d) | C (180d+) — derived from horizon
+benchmark_primary: "SPY"
+schwab_account_hash: ""    # set when broker linked
+
+# Risk limits (Sentinel enforces; these are conservative defaults)
+risk_limits:
+  max_position_pct: 15         # max % of cohort NAV in one position
+  max_sector_pct: 35           # max % in one sector
+  max_drawdown_stop_pct: 12    # portfolio drawdown that forces de-risk
+  max_single_thesis_pct: 25    # anti-overconcentration (all-AI, all-uranium, etc.)
+  min_cash_pct: 0              # floor on cash
+  options_notional_cap_pct: 20
+  futures_notional_cap_pct: 0  # 0 = futures propose-only (Schwab API limitation)

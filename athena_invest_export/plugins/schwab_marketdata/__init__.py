@@ -300,6 +300,8 @@ def schwab_place_order(args: Dict[str, Any], **kwargs) -> str:
         exec_args = {
             "account_suffix": args.get("account_suffix"),
             "idempotency_key": idem,
+            "preview_id": args.get("preview_id"),
+            "user_task": kwargs.get("user_task", ""),
         }
         result = live_executor.place_live_order(order, exec_args)
         return json.dumps(result)
@@ -353,7 +355,9 @@ SCHWAB_PLACE_ORDER_SCHEMA = {
         "order limit, and account-hash confirmation, and logs every event; it "
         "REJECTS (never silently drops) anything that fails a gate. For LIVE "
         "orders you MUST pass account_suffix naming which real account to trade "
-        "(only allow-listed accounts are permitted). Mock fills use live quotes."
+        "(only allow-listed accounts are permitted), preview_id naming the "
+        "claimed immutable approval package, and its stored idempotency_key. "
+        "Mock fills use live quotes."
     ),
     "parameters": {
         "type": "object",
@@ -361,6 +365,7 @@ SCHWAB_PLACE_ORDER_SCHEMA = {
             "cohort": {"type": "string", "description": "Cohort name (required in mock)."},
             "account_hash": {"type": "string", "description": "Live account hash (optional; the live executor resolves it from account_suffix)."},
             "account_suffix": {"type": "string", "description": "LIVE only: display suffix of the target account (e.g. '568'). Must be on the executor allow-list or the order is rejected."},
+            "preview_id": {"type": "string", "description": "LIVE only: immutable preview ID exactly approved by the current user message."},
             "order": {"type": "object", "description": "Schwab order payload (orderType, orderLegCollection, ...)."},
             "idempotency_key": {"type": "string", "description": "Optional stable key; a repeat with the same key+payload will not double-place."},
         },

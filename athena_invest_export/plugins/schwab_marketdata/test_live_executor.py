@@ -11,7 +11,9 @@ Verifies the fail-closed safety gates from PRE_LIVE_MONEY_SAFETY.md:
 
 from __future__ import annotations
 
+import hashlib
 import importlib
+import json
 import os
 from pathlib import Path
 from unittest import mock
@@ -76,6 +78,52 @@ def _mock_trader(le, place_ok=True):
     t.place_order.return_value = {"order_id": "OID1", "status_code": 201}
     t.get_order.return_value = {"orderId": "OID1", "status": "WORKING"}
     return mock.patch.object(le, "trader", t), t
+
+
+def _approved_args(le, idempotency_key="K1", order=None):
+    order = order or ORDER
+    preview_id = f"P-{idempotency_key}"
+    preview_dir = le._schwab_dir() / "previews"
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    machine = {
+        "preview_id": preview_id,
+        "account_suffix": "568",
+        "orders_placed": False,
+        "orders": [{
+            "index": 1,
+            "idempotency_key": idempotency_key,
+            "order": order,
+        }],
+    }
+    preview = preview_dir / f"{preview_id}.md"
+    preview.write_text(
+        "# Approved preview\n\n```json\n"
+        + json.dumps(machine, sort_keys=True, separators=(",", ":"))
+        + "\n```\n",
+        encoding="utf-8",
+    )
+    state = {
+        "preview_id": preview_id,
+        "account_suffix": "568",
+        "status": "EXECUTING",
+        "orders_placed": False,
+        "preview_sha256": hashlib.sha256(preview.read_bytes()).hexdigest(),
+        "resolution": {
+            "decision": f"APPROVE {preview_id}",
+            "source": "authenticated_test_inbound",
+            "claim_id": f"claim-{idempotency_key}",
+        },
+    }
+    (preview_dir / f"{preview_id}.state.json").write_text(
+        json.dumps(state),
+        encoding="utf-8",
+    )
+    return {
+        "account_suffix": "568",
+        "idempotency_key": idempotency_key,
+        "preview_id": preview_id,
+        "user_task": f"APPROVE {preview_id}",
+    }
 
 
 # --- money helpers ---------------------------------------------------------
@@ -145,7 +193,7 @@ def test_missing_account_suffix_rejected(le):
 def test_allowed_account_places_and_verifies(le):
     p, t = _mock_trader(le)
     with p:
-        r = le.place_live_order(ORDER, {"account_suffix": "568"})
+        r = le.place_live_order(ORDER, _approved_args(le))
     assert r["success"] and r["status"] == "PLACED" and r["order_id"] == "OID1"
     # placed against the resolved hash for 568, never the denied one
     t.place_order.assert_called_once()
@@ -154,12 +202,59 @@ def test_allowed_account_places_and_verifies(le):
     t.preview_order.assert_called_once()
 
 
+def test_missing_exact_user_approval_blocks_placement(le):
+    p, t = _mock_trader(le)
+    args = _approved_args(le)
+    args["user_task"] = ""
+
+    with p:
+        result = le.place_live_order(ORDER, args)
+
+    assert result["success"] is False
+    assert "does not exactly approve" in result["reason"]
+    t.place_order.assert_not_called()
+
+
+def test_tampered_approved_preview_blocks_placement(le):
+    p, t = _mock_trader(le)
+    args = _approved_args(le)
+    preview = le._schwab_dir() / "previews" / f"{args['preview_id']}.md"
+    preview.write_text("tampered\n", encoding="utf-8")
+
+    with p:
+        result = le.place_live_order(ORDER, args)
+
+    assert result["success"] is False
+    assert "SHA-256" in result["reason"]
+    t.place_order.assert_not_called()
+
+
+def test_order_payload_must_match_approved_ticket(le):
+    p, t = _mock_trader(le)
+    args = _approved_args(le)
+    changed = {
+        **ORDER,
+        "orderLegCollection": [{
+            "instruction": "BUY",
+            "quantity": 2,
+            "instrument": {"symbol": "SPY", "assetType": "EQUITY"},
+        }],
+    }
+
+    with p:
+        result = le.place_live_order(changed, args)
+
+    assert result["success"] is False
+    assert "does not match" in result["reason"]
+    t.place_order.assert_not_called()
+
+
 def test_preview_reject_blocks_placement(le):
     p, t = _mock_trader(le)
     t.preview_order.return_value = {"orderValidationResult": {
         "rejects": [{"validationRuleType": "REJECT", "message": "insufficient buying power"}]}}
     with p:
-        r = le.place_live_order(ORDER, {"account_suffix": "568"})
+        r = le.place_live_order(ORDER, _approved_args(le))
     assert not r["success"] and "preview rejected" in r["reason"]
     t.place_order.assert_not_called()
 
@@ -168,7 +263,7 @@ def test_preview_error_fails_closed(le):
     p, t = _mock_trader(le)
     t.preview_order.side_effect = RuntimeError("preview 500")
     with p:
-        r = le.place_live_order(ORDER, {"account_suffix": "568"})
+        r = le.place_live_order(ORDER, _approved_args(le))
     assert not r["success"] and "preview failed" in r["reason"]
     t.place_order.assert_not_called()
 
@@ -176,9 +271,10 @@ def test_preview_error_fails_closed(le):
 # --- idempotency -----------------------------------------------------------
 def test_idempotent_replay_no_double_fill(le):
     p, t = _mock_trader(le)
+    args = _approved_args(le)
     with p:
-        r1 = le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "K1"})
-        r2 = le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "K1"})
+        r1 = le.place_live_order(ORDER, args)
+        r2 = le.place_live_order(ORDER, args)
     assert r1["success"] and r2["success"]
     assert r2.get("idempotent_replay") is True
     assert t.place_order.call_count == 1  # placed exactly once
@@ -189,9 +285,10 @@ def test_idempotency_collision_rejected(le):
     other = {**ORDER, "orderLegCollection": [{
         "instruction": "BUY", "quantity": 999,
         "instrument": {"symbol": "SPY", "assetType": "EQUITY"}}]}
+    args = _approved_args(le)
     with p:
-        le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "K1"})
-        r = le.place_live_order(other, {"account_suffix": "568", "idempotency_key": "K1"})
+        le.place_live_order(ORDER, args)
+        r = le.place_live_order(other, args)
     assert not r["success"] and "collision" in r["reason"]
     assert t.place_order.call_count == 1  # the different order was NOT placed
 
@@ -203,9 +300,9 @@ def test_legacy_daily_limit_config_does_not_block_approved_orders(le):
     le._config_path().write_text(cfg)
     p, t = _mock_trader(le)
     with p:
-        a = le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "A"})
-        b = le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "B"})
-        c = le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "C"})
+        a = le.place_live_order(ORDER, _approved_args(le, "A"))
+        b = le.place_live_order(ORDER, _approved_args(le, "B"))
+        c = le.place_live_order(ORDER, _approved_args(le, "C"))
     assert a["success"] and b["success"] and c["success"]
     assert t.place_order.call_count == 3
 
@@ -215,7 +312,7 @@ def test_hash_resolution_fails_closed_on_api_error(le):
     p, t = _mock_trader(le)
     t.get_account_numbers.side_effect = RuntimeError("500 flap")
     with p:
-        r = le.place_live_order(ORDER, {"account_suffix": "568"})
+        r = le.place_live_order(ORDER, _approved_args(le))
     assert not r["success"] and "cannot confirm account hash" in r["reason"]
     t.place_order.assert_not_called()
 
@@ -224,7 +321,7 @@ def test_hash_resolution_fails_closed_on_api_error(le):
 def test_ledger_records_events(le):
     p, t = _mock_trader(le)
     with p:
-        le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "K1"})
+        le.place_live_order(ORDER, _approved_args(le))
     events = le.replay_events()
     types = [e["type"] for e in events]
     assert "ORDER_INTENT" in types and "ORDER_PLACED" in types
@@ -286,7 +383,7 @@ def test_read_back_terminal_bad_status_not_verified(le):
     p, t = _mock_trader(le)
     t.get_order.return_value = {"orderId": "OID1", "status": "REJECTED"}
     with p:
-        r = le.place_live_order(ORDER, {"account_suffix": "568", "idempotency_key": "RB1"})
+        r = le.place_live_order(ORDER, _approved_args(le, "RB1"))
     # order was placed (HTTP ok) but read-back shows REJECTED -> verified False
     assert r["success"] is True and r["verified"] is False
     assert r["status_class"] == "bad"

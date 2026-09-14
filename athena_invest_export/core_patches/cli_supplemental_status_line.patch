@@ -1,0 +1,62 @@
+diff --git a/cli.py b/cli.py
+index 985442308..c2a606635 100644
+--- a/cli.py
++++ b/cli.py
+@@ -12070,6 +12070,49 @@ class AthenaCLI(CLIAgentSetupMixin, CLICommandsMixin):
+         """
+         return []
+
++    # Generic supplemental status-line registry. Any plugin/wrapper can register
++    # a zero-arg callable returning prompt_toolkit formatted-text fragments
++    # (list of (style, text) tuples) — or [] to render nothing this frame. Each
++    # registered provider gets its own 1-line bar above the main status bar,
++    # auto-hidden when it returns empty. Used e.g. for a live market-data ticker.
++    _supplemental_status_providers: list = []
++
++    @classmethod
++    def register_supplemental_status_line(cls, provider) -> None:
++        """Register a fragment-provider callable for an extra TUI status line.
++
++        ``provider()`` must return a list of (style, text) fragments, or [] to
++        render nothing. Safe to call at import/plugin-load time. Exceptions in a
++        provider are swallowed at render time so a bad provider can never break
++        the prompt.
++        """
++        if provider not in cls._supplemental_status_providers:
++            cls._supplemental_status_providers.append(provider)
++
++    def _build_supplemental_status_widgets(self) -> list:
++        """Build a ConditionalContainer bar per registered supplemental provider."""
++        widgets = []
++        for provider in list(self._supplemental_status_providers):
++            def _make(p):
++                def _frags():
++                    try:
++                        return p() or []
++                    except Exception:
++                        return []
++                return _frags
++            frag_fn = _make(provider)
++            widgets.append(
++                ConditionalContainer(
++                    Window(
++                        content=FormattedTextControl(frag_fn),
++                        height=1,
++                        wrap_lines=False,
++                    ),
++                    filter=Condition(lambda fn=frag_fn: bool(fn())),
++                )
++            )
++        return widgets
++
+     def _register_extra_tui_keybindings(self, kb, *, input_area) -> None:
+         """Register extra keybindings on the TUI ``KeyBindings`` object.
+
+@@ -12122,6 +12165,7 @@ class AthenaCLI(CLIAgentSetupMixin, CLICommandsMixin):
+                 spinner_widget,
+                 spacer,
+                 *self._get_extra_tui_widgets(),
++                *self._build_supplemental_status_widgets(),
+                 status_bar,
+                 input_rule_top,
+                 image_bar,

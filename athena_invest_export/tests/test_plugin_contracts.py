@@ -20,7 +20,8 @@ REPO_ROOT = Path(__file__).parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from athena_cli.plugins import PluginContext, PluginManager
+from athena_cli.plugins import PluginContext
+from athena_cli.plugins_manifest import parse_manifest_file
 
 EXPORT_ROOT = Path(__file__).parents[1]
 PLUGINS_ROOT = EXPORT_ROOT / "plugins"
@@ -144,9 +145,7 @@ def test_account_preview_manifest_registration_and_schema_contract(monkeypatch):
     ),
 )
 def test_manifests_are_compatible_with_plugin_manager(plugin_root, expected_name):
-    manager = PluginManager()
-
-    manifest = manager._parse_manifest(
+    manifest = parse_manifest_file(
         plugin_root / "plugin.yaml",
         plugin_root,
         source="user",
@@ -218,11 +217,17 @@ def test_mock_and_live_routing_never_bypass_broker_adapters(monkeypatch):
         "account_suffix": "568",
         "order": order,
         "idempotency_key": "LIVE-IDEM",
-    }))
+        "preview_id": "P-LIVE",
+    }, user_task="APPROVE P-LIVE"))
     assert live_result["success"] is True
     live_place.assert_called_once_with(
         order,
-        {"account_suffix": "568", "idempotency_key": "LIVE-IDEM"},
+        {
+            "account_suffix": "568",
+            "idempotency_key": "LIVE-IDEM",
+            "preview_id": "P-LIVE",
+            "user_task": "APPROVE P-LIVE",
+        },
     )
     direct_place.assert_not_called()
 
