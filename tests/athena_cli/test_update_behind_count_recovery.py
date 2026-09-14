@@ -64,8 +64,12 @@ def _fresh_compare_cache():
 
 
 def test_compare_behind_returns_ahead_by():
-    with _patch_urlopen({"ahead_by": 61, "status": "ahead"}):
+    with _patch_urlopen({"ahead_by": 61, "status": "ahead"}) as opened:
         assert banner._github_compare_behind(SHA_A, SHA_B) == 61
+    request = opened.call_args.args[0]
+    assert request.full_url.startswith(
+        "https://api.github.com/repos/pavel4ai/athena/compare/"
+    )
 
 
 def test_compare_behind_zero_means_local_ahead():

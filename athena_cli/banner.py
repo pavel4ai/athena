@@ -136,7 +136,7 @@ _last_target_rev: Optional[str] = None
 UPDATE_AVAILABLE_NO_COUNT = -1
 
 _UPSTREAM_REPO_URL = "https://github.com/pavel4ai/athena.git"
-_OFFICIAL_REPO_CANONICAL = "github.com/nousresearch/athena-agent"
+_OFFICIAL_REPO_CANONICAL = "github.com/pavel4ai/athena"
 
 
 def _canonical_github_remote(url: str | None) -> str:
@@ -227,7 +227,7 @@ def _github_compare(current_rev: str, target_rev: str) -> Optional[dict]:
     key = (current_rev, target_rev)
     if key in _compare_payload_cache:
         return _compare_payload_cache[key]
-    url = f"https://api.github.com/repos/nousresearch/athena-agent/compare/{current_rev}...{target_rev}"
+    url = f"https://api.github.com/repos/pavel4ai/athena/compare/{current_rev}...{target_rev}"
 
     def _fetch():
         import urllib.request

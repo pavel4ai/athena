@@ -66,6 +66,14 @@ def test_passive_check_uses_the_api_and_never_fetches(git_repo, monkeypatch):
     assert (cached["head"], cached["target"], cached["behind"]) == (SHA_A, SHA_B, 61)
 
 
+def test_revision_fallback_uses_athena_origin(monkeypatch):
+    tip = MagicMock(return_value=SHA_B)
+    monkeypatch.setattr(banner, "_github_branch_tip", tip)
+
+    assert banner._upstream_main_sha() == SHA_B
+    tip.assert_called_once_with("pavel4ai/athena", "main")
+
+
 def test_cache_is_daily_but_invalidated_when_head_moves(git_repo, monkeypatch):
     """A fresh cache answers without any network; ``athena update`` moving HEAD busts it at once;
     an inconclusive (None) result is retried after the shorter failure window, not never."""
