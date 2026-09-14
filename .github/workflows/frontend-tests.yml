@@ -22,14 +22,14 @@ jobs:
       matrix:
         include:
           - name: TUI Vitest
-            command: npm run --prefix ui-tui test
+            command: npm --prefix ui-tui run test
             python: true
           - name: Web Vitest
-            command: npm run --prefix web test
+            command: npm --prefix web run test
           - name: Desktop Vitest
-            command: npm run --prefix apps/desktop test:ui
-          - name: Desktop Electron node tests
-            command: npm run --prefix apps/desktop test:desktop:platforms
+            command: npm --prefix apps/desktop run test:ui
+          - name: Desktop Electron tests
+            command: npm --prefix apps/desktop run test:desktop:platforms
 
     name: ${{ matrix.name }}
     steps:
@@ -47,7 +47,9 @@ jobs:
 
       - name: Install uv
         if: matrix.python
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # 8.2.0
+        with:
+          version: "0.9.28"
 
       - name: Install Python test dependencies
         if: matrix.python

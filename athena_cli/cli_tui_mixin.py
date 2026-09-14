@@ -349,6 +349,32 @@ class CLITuiMixin:
         """Extension hook: wrapper CLIs return widgets inserted between the spacer and status bar."""
         return []
 
+    @classmethod
+    def register_supplemental_status_line(cls, provider) -> None:
+        """Register a fragment provider for an additional dynamic status row."""
+        from athena_cli.status_lines import register_supplemental_status_line
+
+        register_supplemental_status_line(provider)
+
+    def _build_supplemental_status_widgets(self) -> list:
+        """Build the failure-isolated status row shared by runtime plugins."""
+        from athena_cli.status_lines import merged_supplemental_fragments
+
+        return [
+            ConditionalContainer(
+                Window(
+                    content=FormattedTextControl(
+                        merged_supplemental_fragments,
+                    ),
+                    height=1,
+                    wrap_lines=False,
+                ),
+                filter=Condition(
+                    lambda: bool(merged_supplemental_fragments())
+                ),
+            )
+        ]
+
     def _register_extra_tui_keybindings(self, kb, *, input_area) -> None:
         """Extension hook: wrapper CLIs add bindings to ``kb`` (``input_area`` is the main TextArea)."""
 
@@ -385,6 +411,7 @@ class CLITuiMixin:
             spinner_widget,
             spacer,
             *self._get_extra_tui_widgets(),
+            *self._build_supplemental_status_widgets(),
             getattr(self, "_pet_widget", None),
             getattr(self, "_stash_panel_widget", None),
             getattr(self, "_subagent_dock_widget", None),

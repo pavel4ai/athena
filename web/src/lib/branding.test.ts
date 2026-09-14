@@ -10,7 +10,12 @@ const upstreamName = ["Her", "mes"].join("");
 
 const localeFiles = readdirSync(localeDirectory)
   .filter((name) => name.endsWith(".ts"))
-  .filter((name) => !["context.ts", "index.ts", "types.ts"].includes(name));
+  .filter(
+    (name) =>
+      !["context.ts", "define-locale.ts", "index.ts", "types.ts"].includes(
+        name,
+      ),
+  );
 
 describe("dashboard branding", () => {
   it("keeps the Athena browser title", () => {

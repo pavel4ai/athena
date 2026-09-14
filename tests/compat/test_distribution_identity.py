@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import tomllib
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -44,9 +45,12 @@ def test_bootstrap_installer_is_futurebound_branded():
 
 
 def test_acp_distribution_uses_athena_package_and_command():
-    manifest = _json("acp_registry/agent.json")
+    with (REPO_ROOT / "pyproject.toml").open("rb") as handle:
+        project = tomllib.load(handle)["project"]
 
-    assert manifest["id"] == "athena-agent"
-    assert manifest["repository"] == "https://github.com/pavel4ai/athena"
-    assert manifest["distribution"]["uvx"]["package"].startswith("athena-agent[acp]")
-    assert manifest["distribution"]["uvx"]["args"] == ["athena-acp"]
+    assert project["name"] == "athena-agent"
+    assert project["scripts"]["athena-acp"] == "acp_adapter.entry:main"
+    assert any(
+        dependency == "agent-client-protocol==0.9.0"
+        for dependency in project["optional-dependencies"]["acp"]
+    )

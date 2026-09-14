@@ -79,7 +79,8 @@ def test_cli_tool_provider_matrix_has_no_subscription_choices(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_dashboard_tool_payload_matches_hidden_cli_policy(monkeypatch):
-    from athena_cli import tools_config, web_server
+    from athena_cli import tools_config
+    from athena_cli.web_routers.tools import get_toolset_config
 
     _stub_subscription_state(monkeypatch, tools_config)
     configurable = {
@@ -96,7 +97,7 @@ async def test_dashboard_tool_payload_matches_hidden_cli_policy(monkeypatch):
             {},
             force_fresh=True,
         )
-        payload = await web_server.get_toolset_config(key)
+        payload = await get_toolset_config(key)
         dashboard_rows = payload["providers"]
 
         _assert_no_subscription_choice(

@@ -114,6 +114,7 @@ class TestExistingInstallDefault:
                 agent="athena_cli.setup.setup_agent_settings",
                 gateway="athena_cli.setup.setup_gateway",
                 tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             run_setup_wizard(args)
@@ -129,6 +130,7 @@ class TestExistingInstallDefault:
         m["agent"].assert_not_called()
         m["gateway"].assert_called_once()
         m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
 
 
 class TestQuickFlag:
@@ -146,6 +148,7 @@ class TestQuickFlag:
                 agent="athena_cli.setup.setup_agent_settings",
                 gateway="athena_cli.setup.setup_gateway",
                 tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
             from athena_cli import setup as setup_mod
@@ -164,6 +167,7 @@ class TestQuickFlag:
         m["agent"].assert_not_called()
         m["gateway"].assert_not_called()
         m["tools"].assert_not_called()
+        m["x_twitter"].assert_not_called()
 
 
 class TestFreshInstall:
@@ -177,20 +181,21 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("athena_cli.setup.prompt_choice", {"return_value": 0}),
-                first="athena_cli.setup_quick._run_first_time_quick_setup",
+                model="athena_cli.setup.setup_model_provider",
+                terminal="athena_cli.setup.setup_terminal_backend",
+                gateway="athena_cli.setup.setup_gateway",
+                tools="athena_cli.setup.setup_tools",
+                x_twitter="athena_cli.setup.setup_x_twitter_news",
             )
             from athena_cli.setup import run_setup_wizard
-            from athena_cli import setup as setup_mod
-
-            section_indexes = []
-            m["first"].side_effect = lambda *_args: section_indexes.append(
-                setup_mod._SETUP_NAVIGATION.get().section_index
-            )
             run_setup_wizard(args)
 
         m["prompt"].assert_called_once()
-        m["first"].assert_called_once()
-        assert section_indexes == [0]
+        m["model"].assert_called_once()
+        m["terminal"].assert_called_once()
+        m["gateway"].assert_called_once()
+        m["tools"].assert_called_once()
+        m["x_twitter"].assert_called_once()
 
     def test_blank_slate_runs_inside_navigation_step(self, fresh_install):
         args = _make_setup_args()
@@ -198,7 +203,7 @@ class TestFreshInstall:
         with ExitStack() as stack:
             m = _enter_fresh_install_patches(
                 stack,
-                prompt=("athena_cli.setup.prompt_choice", {"return_value": 2}),
+                prompt=("athena_cli.setup.prompt_choice", {"return_value": 1}),
                 blank="athena_cli.setup_quick._run_blank_slate_setup",
             )
             from athena_cli import setup as setup_mod

@@ -1054,6 +1054,16 @@ def _has_any_provider_configured(*, strict_profile_scope: bool = False) -> bool:
     return False
 
 
+def _is_first_run_config_missing() -> bool:
+    """True when this Athena home has no persisted user configuration."""
+    try:
+        from athena_cli.config import get_config_path
+
+        return not get_config_path().is_file()
+    except Exception:
+        return False
+
+
 def _confirm_startup_expensive_model_override(args) -> None:
     """Guard startup -m/--provider overrides before the first API call."""
     explicit_model = (getattr(args, "model", None) or "").strip()
@@ -1695,8 +1705,34 @@ def cmd_chat(args):
 
     _warn_retired_xai_models()
 
-    # First-run guard: the free-tier bootstrap runs first (synchronously here; it is the only thing
-    # that may create the identity), then the inventory decides whether setup is needed.
+    # Capture this before free-tier bootstrap can create identity/config state.
+    # A fresh Athena home must run its setup contract even when ambient
+    # credentials or a free-tier identity would otherwise look usable.
+    first_run_config_missing = _is_first_run_config_missing()
+
+    if first_run_config_missing:
+        print()
+        print("It looks like this Athena profile has not been set up yet.")
+        print()
+        print("  Run:  athena setup")
+        print()
+
+        from athena_cli.setup import (
+            is_interactive_stdin,
+            print_noninteractive_setup_guidance,
+        )
+
+        if not is_interactive_stdin():
+            print_noninteractive_setup_guidance(
+                "No interactive TTY detected for first-run setup."
+            )
+            sys.exit(1)
+
+        cmd_setup(args)
+        return
+
+    # The free-tier bootstrap runs synchronously for initialized profiles; it
+    # is the only thing that may create the anonymous identity.
     from athena_cli.free_tier_bootstrap import run_bootstrap
 
     run_bootstrap(announce=False)

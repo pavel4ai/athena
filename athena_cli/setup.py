@@ -1,8 +1,9 @@
 """Interactive setup wizard for Athena Agent (config lives in ~/.athena/).
 
-Independently-runnable sections: Model & Provider, Terminal Backend, Agent Settings, Messaging
-Platforms, Tools. Section bodies live in sibling setup_* modules and are re-exported here; they
-resolve shared prompt/config helpers lazily through this module so test patches on
+Independently-runnable sections: Model & Provider, Terminal Backend, Agent
+Settings, Messaging Platforms, Tools, and X/Twitter News. Section bodies live
+in sibling setup_* modules and are re-exported here; they resolve shared
+prompt/config helpers lazily through this module so test patches on
 ``athena_cli.setup.<name>`` keep working.
 """
 
@@ -489,6 +490,98 @@ def setup_tools(config: dict, first_install: bool = False):
     tools_command(first_install=first_install, config=config)
 
 
+# ── X/Twitter News via xurl ──
+
+
+def setup_x_twitter_news(config: dict) -> None:
+    """Guide xurl setup without reading or storing X credentials."""
+    print_header("X/Twitter News (xurl)")
+    _info(
+        "X/Twitter can be a major source of market and infrastructure news.",
+        "Athena uses the official xurl CLI for X API access.",
+        None,
+    )
+    print_warning("Do not paste X/Twitter tokens into Athena chat.")
+    print_warning("Do not ask Athena to read or print ~/.xurl.")
+    print_info("Enter secrets only in terminal prompts or the X developer dashboard.")
+    print()
+
+    if not prompt_yes_no(
+        "Configure X/Twitter news access with xurl now?",
+        True,
+    ):
+        print_info(
+            "Skipping X/Twitter setup. Run `athena setup x-twitter` later."
+        )
+        return
+
+    xurl_path = shutil.which("xurl")
+    if xurl_path:
+        print_success(f"xurl found: {xurl_path}")
+    else:
+        print_warning("xurl was not found on PATH.")
+        _info(
+            "Install it directly in your terminal:",
+            "  curl -fsSL https://raw.githubusercontent.com/xdevplatform/xurl/main/install.sh -o /tmp/xurl-install.sh",
+            "  less /tmp/xurl-install.sh",
+            "  bash /tmp/xurl-install.sh",
+            '  export PATH="$HOME/.local/bin:$PATH"',
+            "  xurl --help",
+            None,
+        )
+        if not prompt_yes_no(
+            "Continue with app metadata and auth instructions?",
+            False,
+        ):
+            return
+
+    _info(
+        None,
+        "Create or open your X developer app:",
+        "  https://developer.x.com/en/portal/dashboard",
+        None,
+    )
+    app_name = prompt("X app name (non-secret, optional)")
+    username = prompt("X username/handle (non-secret, optional)")
+
+    if app_name or username:
+        x_cfg = config.setdefault("social", {}).setdefault("xurl", {})
+        if app_name:
+            x_cfg["app_name"] = app_name
+        if username:
+            x_cfg["username"] = username.lstrip("@")
+        print_success("Saved non-secret xurl app metadata to config.yaml")
+
+    app = app_name or "<X_APP_NAME>"
+    user = username.lstrip("@") if username else "<X_USERNAME>"
+    _info(
+        None,
+        "Recommended read/search/news setup: app-only Bearer token auth.",
+        "Run these commands yourself and replace placeholders only in the terminal:",
+        None,
+    )
+    print(color(f"  xurl auth apps add {app}", Colors.DIM))
+    print(
+        color(
+            f"  xurl --app {app} auth app --bearer-token <BEARER_TOKEN>",
+            Colors.DIM,
+        )
+    )
+    print(color(f"  xurl auth default {app} {user}", Colors.DIM))
+    print(color("  xurl auth status", Colors.DIM))
+    _info(
+        None,
+        "Expected `xurl auth status`: your app should show `bearer: ✓`.",
+        "Test a read-only search:",
+    )
+    print(
+        color(
+            f'  xurl --app {app} --auth app search "AI news lang:en" -n 5',
+            Colors.DIM,
+        )
+    )
+
+
 # ── Shared Metrics ──
 
 
@@ -565,6 +658,7 @@ SETUP_SECTIONS = [
     ("terminal", "Terminal Backend", setup_terminal_backend),
     ("gateway", "Messaging Platforms (Gateway)", setup_gateway),
     ("tools", "Tools", setup_tools),
+    ("x-twitter", "X/Twitter News (xurl)", setup_x_twitter_news),
     ("telemetry", "Shared Metrics", setup_telemetry),
     ("agent", "Agent Settings", setup_agent_settings),
 ]
@@ -629,13 +723,12 @@ def _run_full_setup(config: dict, athena_home, *, is_existing: bool, migration_r
         _step("model", "Model & Provider", lambda: setup_model_provider(config)),
         _step("terminal", "Terminal Backend", lambda: setup_terminal_backend(config)),
         ("Messaging Platforms", _gateway_step),
-        _step("tools", "Tools", lambda: setup_tools(config, first_install=not is_existing))])
+        _step("tools", "Tools", lambda: setup_tools(config, first_install=not is_existing)),
+        _step("x-twitter", "X/Twitter News", lambda: setup_x_twitter_news(config))])
 
 
 # First-time mode picker: (menu label, setup_quick runner name) — None falls through to Full Setup.
 _FIRST_TIME_MODES = (
-    ("Quick Setup (Nous Portal) — free OAuth login, no API keys, model + tools (recommended)",
-     "_run_first_time_quick_setup"),
     ("Full setup — configure every provider, tool & option yourself (bring your own keys)", None),
     ("Blank Slate — everything off except the bare minimum; opt in to each capability", "_run_blank_slate_setup"),
 )

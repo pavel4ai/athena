@@ -58,7 +58,7 @@ import {
 import { dashboardFallbackArgs, sourceDeclaresServe } from './backend-command'
 import { createBackendConnectionState } from './backend-connection-state'
 import { BackendDialClaims } from './backend-dial-claim'
-import { buildDesktopBackendEnv, athenaManagedNodePathEntries, normalizeAthenaHomeRoot } from './backend-env'
+import { athenaManagedNodePathEntries, buildDesktopBackendEnv, normalizeAthenaHomeRoot } from './backend-env'
 import { isReauthRequiredError, waitForAthenaReady } from './backend-health'
 import { backendCommandMatches, createBackendOwnership, createBackendShutdownCoordinator } from './backend-ownership'
 import {
@@ -436,13 +436,13 @@ import {
   MIN_HEIGHT as WINDOW_MIN_HEIGHT,
   MIN_WIDTH as WINDOW_MIN_WIDTH
 } from './window-state'
-import { hiddenWindowsChildOptions } from './windows-child-options'
 import {
   buildPathExtCandidates,
   chooseUpdaterArgs,
   getVenvSitePackagesEntries,
   resolveVenvAthenaCommand
 } from './windows-athena-path'
+import { hiddenWindowsChildOptions } from './windows-child-options'
 import {
   connectWindowsRemote,
   detectRemotePlatform,
@@ -1345,7 +1345,7 @@ if (IS_WINDOWS) {
 app.setAboutPanelOptions({
   applicationName: APP_NAME,
   applicationVersion: resolveAthenaVersion(),
-  copyright: 'Copyright © 2026 Nous Research'
+  copyright: 'Copyright © 2026 Futurebound Corp.'
 })
 
 // Custom scheme for streaming audio/video into the renderer. Local paths read
@@ -17575,7 +17575,7 @@ function showAboutPanelFresh() {
       applicationVersion: skew.outOfSync
         ? `${resolveAthenaVersion()} — app build out of date, update the desktop app`
         : resolveAthenaVersion(),
-      copyright: 'Copyright © 2026 Nous Research'
+      copyright: 'Copyright © 2026 Futurebound Corp.'
     })
     app.showAboutPanel()
   })

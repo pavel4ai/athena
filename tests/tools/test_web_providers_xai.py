@@ -74,6 +74,18 @@ class TestXAIProviderIsAvailable:
         from plugins.web.xai.provider import XAIWebSearchProvider
         assert XAIWebSearchProvider().is_available() is True
 
+    def test_available_via_dotenv_key(self, monkeypatch, tmp_path):
+        monkeypatch.delenv("XAI_API_KEY", raising=False)
+        monkeypatch.setenv("ATHENA_HOME", str(tmp_path))
+        (tmp_path / ".env").write_text(
+            "XAI_API_KEY=sk-xai-dotenv\n",
+            encoding="utf-8",
+        )
+
+        from plugins.web.xai.provider import XAIWebSearchProvider
+
+        assert XAIWebSearchProvider().is_available() is True
+
 
     def test_unavailable_when_auth_store_corrupted(self, monkeypatch, tmp_path):
         """A malformed auth.json must not crash availability scans."""

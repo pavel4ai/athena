@@ -36,6 +36,8 @@ _EXTERNAL_MODEL_PREFIX = re.compile(
 _PRODUCT_REPOSITORY_REPLACEMENTS = (
     (f"NousResearch/{NEW_TITLE}-Agent", "pavel4ai/athena"),
     (f"NousResearch/{NEW_LOWER}-agent", "pavel4ai/athena"),
+    ('org: "Futurebound Corp."', 'org: "Futurebound Corp."'),
+    ("org: 'Futurebound Corp.'", "org: 'Futurebound Corp.'"),
 )
 
 _EXTERNAL_MODEL_REPAIRS = (
@@ -197,7 +199,8 @@ def _resolve_worktree_paths(
     for source in tracked:
         target = root / _target_relative_path(source.relative_to(root))
         if source == target:
-            effective[source] = source
+            if _path_present(source):
+                effective[source] = source
         elif _path_present(source):
             effective[source] = target
             renames.append((source, target))
@@ -224,7 +227,9 @@ def _plan(root: Path) -> tuple[list[tuple[Path, Path]], list[Path]]:
         targets.add(target)
 
     for source in tracked:
-        path = effective[source]
+        path = effective.get(source)
+        if path is None:
+            continue
         if _transformed_bytes(path) is not None:
             text_changes.append(path)
 
@@ -254,7 +259,9 @@ def _apply(root: Path) -> tuple[int, int]:
 
     changed = 0
     for source in tracked:
-        path = effective[source]
+        path = effective.get(source)
+        if path is None:
+            continue
         transformed = _transformed_bytes(path)
         if transformed is None:
             continue

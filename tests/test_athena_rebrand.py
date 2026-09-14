@@ -88,6 +88,14 @@ def test_product_repository_urls_move_to_athena_origin():
     )
 
 
+def test_user_interface_publisher_moves_to_futurebound():
+    transform = _load_transform()
+
+    assert transform._transform_text(
+        'footer: { org: "Futurebound Corp." }'
+    ) == 'footer: { org: "Futurebound Corp." }'
+
+
 def test_repair_restores_external_model_ids_after_legacy_transform():
     transform = _load_transform()
     source = (

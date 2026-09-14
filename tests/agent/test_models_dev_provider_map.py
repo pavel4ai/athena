@@ -34,8 +34,8 @@ def test_direct_api_context_does_not_inherit_codex_oauth_cap():
         ),
         patch("agent.models_dev.fetch_models_dev", return_value=registry),
         patch(
-            "agent.model_metadata._resolve_codex_oauth_context_length",
-            return_value=272_000,
+            "agent.model_metadata._resolve_codex_oauth_context_length_with_source",
+            return_value=(272_000, "fallback"),
         ) as codex_context,
         patch("agent.model_metadata.save_context_length"),
     ):

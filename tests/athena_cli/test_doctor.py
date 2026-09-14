@@ -1301,7 +1301,7 @@ class TestDoctorXaiOAuthStatus:
 
 
     def test_import_failure_does_not_affect_other_providers(self, monkeypatch, tmp_path):
-        """Nous / Codex / Gemini / MiniMax rows must survive an xAI import failure."""
+        """Codex, Gemini, and MiniMax rows survive an xAI import failure."""
         home = tmp_path / ".athena"
         home.mkdir(parents=True, exist_ok=True)
         (home / "config.yaml").write_text("memory: {}\n", encoding="utf-8")
@@ -1328,8 +1328,9 @@ class TestDoctorXaiOAuthStatus:
         with contextlib.redirect_stdout(buf):
             doctor_mod.run_doctor(Namespace(fix=False))
         out = buf.getvalue()
-        assert "Nous Portal auth" in out
-        assert "logged in" in out
+        assert "Nous Portal auth" not in out
+        assert "OpenAI Codex auth" in out
+        assert "MiniMax OAuth" in out
 
     def test_function_raises_does_not_crash_doctor(self, monkeypatch, tmp_path):
         """A runtime exception from get_xai_oauth_auth_status must be swallowed."""

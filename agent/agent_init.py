@@ -631,6 +631,10 @@ _STREAM_STATE: Dict[str, Any] = {
     "_persist_user_message_idx": None,
     "_persist_user_message_override": None,
     "_persist_user_message_timestamp": None,
+    # Clean inbound text for the current turn. Registry tools receive this
+    # separately from model-authored arguments so approval-sensitive handlers
+    # can verify genuine user intent.
+    "_current_user_task": "",
     # Image-to-text fallbacks cached per payload/URL so one tool loop doesn't re-run vision.
     "_anthropic_image_fallback_cache": dict,
 }

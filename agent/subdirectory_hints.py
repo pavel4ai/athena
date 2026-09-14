@@ -72,9 +72,25 @@ class SubdirectoryHintTracker:
             self._loaded_digests.add(_digest(found[1]))
 
     def check_tool_call(self, tool_name: str, tool_args: Dict[str, Any]) -> Optional[str]:
-        """Return formatted hint text for newly visited directories, or None."""
-        all_hints = [h for d in self._extract_directories(tool_name, tool_args) if (h := self._load_hints_for_directory(d))]
-        return "\n\n" + "\n\n".join(all_hints) if all_hints else None
+        """Return hints for newly visited directories; fail closed to no hints."""
+        try:
+            all_hints = [
+                hint
+                for directory in self._extract_directories(
+                    tool_name,
+                    tool_args,
+                )
+                if (
+                    hint := self._load_hints_for_directory(directory)
+                )
+            ]
+            return "\n\n" + "\n\n".join(all_hints) if all_hints else None
+        except Exception:
+            logger.debug(
+                "subdirectory hint check failed; skipping",
+                exc_info=True,
+            )
+            return None
 
     def _extract_directories(self, tool_name: str, args: Dict[str, Any]) -> list:
         """Extract directory paths from tool call arguments."""

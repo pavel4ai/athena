@@ -32,6 +32,8 @@ def has_xai_credentials() -> bool:
 
     if (get_secret("XAI_API_KEY", "") or "").strip():
         return True
+    if str(get_env_value("XAI_API_KEY", "") or "").strip():
+        return True
     try:
         from athena_constants import get_athena_home
         auth_path = get_athena_home() / "auth.json"

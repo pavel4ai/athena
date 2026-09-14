@@ -31,15 +31,15 @@ def _response(content: str, finish_reason: str, tool_calls=None):
 
 def _make_agent():
     with (
-        patch("run_agent.get_tool_definitions", return_value=_tool_definitions()),
-        patch("run_agent.check_toolset_requirements", return_value={}),
+        patch("model_tools.get_tool_definitions", return_value=_tool_definitions()),
+        patch("model_tools.check_toolset_requirements", return_value={}),
         patch("athena_cli.config.load_config", return_value={}),
         patch("athena_logging.setup_logging"),
         patch(
             "agent.model_metadata.get_model_context_length",
             return_value=200_000,
         ),
-        patch("run_agent.OpenAI"),
+        patch("agent.process_bootstrap.OpenAI"),
     ):
         agent = AIAgent(
             provider="openrouter",
@@ -83,7 +83,7 @@ def test_clean_inbound_task_reaches_registry_dispatch():
 
     with (
         patch(
-            "run_agent.handle_function_call",
+            "model_tools.handle_function_call",
             return_value='{"success": true}',
         ) as dispatch,
         patch.object(agent, "_persist_session"),

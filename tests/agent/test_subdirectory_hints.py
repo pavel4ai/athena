@@ -328,6 +328,24 @@ class TestExcludedDirectories:
         result = tracker.check_tool_call("read_file", {"path": str(sub / "f.py")})
         assert result is not None and "Package rules" in result
 
+
+def test_check_tool_call_survives_missing_home(project, monkeypatch):
+    for name in ("HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH"):
+        monkeypatch.delenv(name, raising=False)
+    tracker = SubdirectoryHintTracker(working_dir=str(project))
+
+    with patch.object(
+        Path,
+        "expanduser",
+        side_effect=RuntimeError("Could not determine home directory."),
+    ):
+        result = tracker.check_tool_call(
+            "terminal",
+            {"command": "cat ~/.athena/notes.md"},
+        )
+
+    assert result is None or isinstance(result, str)
+
     def test_normal_directory_unaffected(self, tmp_path):
         normal = tmp_path / "backend"
         normal.mkdir()

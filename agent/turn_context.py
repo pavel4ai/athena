@@ -936,6 +936,13 @@ def build_turn_context(
 
     # Preserve the original user message (no nudge injection).
     original_user_message = persist_user_message if persist_user_message is not None else user_message
+    # Keep provenance separate from the API-facing message, which may contain
+    # timestamp, voice, or observed-group wrappers.
+    agent._current_user_task = (
+        original_user_message
+        if isinstance(original_user_message, str)
+        else ""
+    )
     should_review_memory = _tick_memory_nudge(agent)
     _emit_reaction(agent, original_user_message)
 

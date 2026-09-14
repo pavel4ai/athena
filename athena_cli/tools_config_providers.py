@@ -131,9 +131,7 @@ _PLUGIN_ROW_BUILDERS = {
 def _visible_providers(
     cat: dict, config: dict, *, force_fresh: bool = False, features: Optional[NousSubscriptionFeatures] = None,
 ) -> list[dict]:
-    """Provider entries visible for the current auth/config state.
-    Nous-managed rows (``managed_nous_feature``) are always shown, even logged-out/unentitled, to
-    advertise the capability."""
+    """Provider entries visible under Athena's BYOK-first facade policy."""
     from athena_cli.tools_config import get_nous_subscription_features
 
     if features is None:
@@ -145,8 +143,12 @@ def _visible_providers(
     visible = []
     for provider in cat.get("providers", []):
         managed = provider.get("managed_nous_feature")
-        # Managed rows stay visible regardless of auth (selecting one drives an inline Portal login); a
-        # `requires_nous_auth` row without a managed feature hides until logged in.
+        if managed or str(provider.get("name", "")).startswith(
+            "Nous Subscription"
+        ):
+            continue
+        # Auth-only backend rows remain available after explicit login; managed
+        # subscription advertisement rows are hidden above.
         if provider.get("requires_nous_auth") and not managed and not features.nous_auth_present:
             continue
         if pool_only and managed == "video_gen" and not (acct and acct.tool_gateway_entitled_for("fal-video")):
@@ -815,19 +817,8 @@ def _print_provider_selection(provider: dict, managed_feature, *, reconfigure: b
 
 
 def _show_portal_hint(provider: dict, config: dict, managed_feature, force_fresh: bool) -> bool:
-    """True when a BYOK row shares its category with a Nous-managed sibling and the user is not authed to
-    Nous — a single dim hint tells them the key is avoidable via a Portal subscription."""
-    from athena_cli.tools_config import TOOL_CATEGORIES, get_nous_subscription_features
-
-    if managed_feature or provider.get("requires_nous_auth"):
-        return False
-    try:
-        for _cat in TOOL_CATEGORIES.values():
-            _providers = _cat.get("providers", [])
-            if provider in _providers and any(sib.get("managed_nous_feature") for sib in _providers):
-                return not get_nous_subscription_features(config, force_fresh=force_fresh).nous_auth_present
-    except Exception:
-        pass
+    """Athena does not advertise subscription alternatives in BYOK setup."""
+    del provider, config, managed_feature, force_fresh
     return False
 
 

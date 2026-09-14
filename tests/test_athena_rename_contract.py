@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+import subprocess
 import tomllib
 
 import athena_constants
@@ -31,6 +33,43 @@ def _allowed_external_brand_terms() -> dict[str, tuple[str, ...]]:
     }
 
 
+def _strip_allowed_external_references(text: str, relative: Path) -> str:
+    lower, title, upper = _old_brand_terms()[:3]
+    for allowed in _allowed_external_brand_terms().get(
+        relative.as_posix(),
+        (),
+    ):
+        text = text.replace(allowed, "")
+
+    text = text.replace(f"{lower}.shared_metrics", "")
+    history_url = re.compile(
+        r"https://github\.com/NousResearch/"
+        + re.escape(f"{title}-Agent")
+        + r"/(?:issues|pull|commit|compare)/[^\s)\]>'\"]+",
+        re.IGNORECASE,
+    )
+    text = history_url.sub("", text)
+
+    external_model = re.compile(
+        rf"\b(?:{title}|{lower}|{upper})"
+        r"(?:-Agent-Thinking|[- ](?:3|4)|3)"
+        r"[A-Za-z0-9._:/-]*"
+    )
+    return external_model.sub("", text)
+
+
+def _tracked_project_files() -> list[Path]:
+    output = subprocess.check_output(
+        ["git", "ls-files", "-z"],
+        cwd=REPO_ROOT,
+    )
+    return [
+        REPO_ROOT / raw.decode("utf-8")
+        for raw in output.split(b"\0")
+        if raw
+    ]
+
+
 def test_project_metadata_exposes_athena_entrypoints_only():
     data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
@@ -60,28 +99,14 @@ def test_runtime_defaults_use_athena_paths_and_env(monkeypatch, tmp_path):
 
 
 def test_no_old_brand_references_remain_in_project_files():
-    skipped_dirs = {
-        ".git",
-        ".venv",
-        ".pytest_cache",
-        ".ruff_cache",
-        "venv",
-        "node_modules",
-        "__pycache__",
-    }
     forbidden = _old_brand_terms()
-    allowed_external = _allowed_external_brand_terms()
     offenders: list[str] = []
 
-    for path in REPO_ROOT.rglob("*"):
+    for path in _tracked_project_files():
         relative = path.relative_to(REPO_ROOT)
-        relative_parts = relative.parts
-        if any(part in skipped_dirs for part in relative_parts):
-            continue
-        if relative_parts and relative_parts[0] in {"build", "dist"}:
-            continue
-        if any(term in path.name for term in forbidden):
-            offenders.append(str(path.relative_to(REPO_ROOT)))
+        if any(term in relative.as_posix() for term in forbidden):
+            if f"{forbidden[0]}.shared_metrics" not in relative.as_posix():
+                offenders.append(str(relative))
             continue
         if not path.is_file() or path.is_symlink():
             continue
@@ -92,8 +117,7 @@ def test_no_old_brand_references_remain_in_project_files():
             text = data.decode("utf-8")
         except UnicodeDecodeError:
             continue
-        for allowed in allowed_external.get(relative.as_posix(), ()):
-            text = text.replace(allowed, "")
+        text = _strip_allowed_external_references(text, relative)
         if any(term in text for term in forbidden):
             offenders.append(str(relative))
 

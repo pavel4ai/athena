@@ -885,6 +885,8 @@ def get_subprocess_home(env: dict[str, str] | None = None) -> str | None:
     real_home = get_real_home(env)
     current_home = _env_get(env, "HOME")
     repaired = real_home if _norm_home_path(real_home) != _norm_home_path(current_home) else None
+    if not current_home:
+        return real_home or None
     if mode == "real":
         return repaired
 
@@ -897,10 +899,13 @@ def get_subprocess_home(env: dict[str, str] | None = None) -> str | None:
 
 def apply_subprocess_home_env(env: dict[str, str]) -> None:
     """Apply Athena' subprocess HOME contract to *env* in-place."""
-    real_home = get_real_home(env)
+    try:
+        real_home = get_real_home(env)
+        home = get_subprocess_home(env)
+    except (OSError, RuntimeError, ValueError):
+        return
     if real_home:
         env["ATHENA_REAL_HOME"] = real_home
-    home = get_subprocess_home(env)
     if home:
         env["HOME"] = home
 

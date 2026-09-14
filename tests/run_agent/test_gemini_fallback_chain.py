@@ -31,15 +31,15 @@ def _make_agent(primary_client):
         "model": "gemini-2.5-flash",
     }
     with (
-        patch("run_agent.get_tool_definitions", return_value=[]),
-        patch("run_agent.check_toolset_requirements", return_value={}),
+        patch("model_tools.get_tool_definitions", return_value=[]),
+        patch("model_tools.check_toolset_requirements", return_value={}),
         patch("athena_cli.config.load_config", return_value={}),
         patch("athena_logging.setup_logging"),
         patch(
             "agent.model_metadata.get_model_context_length",
             return_value=200_000,
         ),
-        patch("run_agent.OpenAI", return_value=primary_client),
+        patch("agent.process_bootstrap.OpenAI", return_value=primary_client),
     ):
         agent = AIAgent(
             provider="openrouter",
@@ -142,6 +142,7 @@ def test_exhausted_gemini_fallback_flushes_attempt_trace():
 
     status_text = "\n".join(emitted_status)
     assert result["failed"] is True
-    assert "switching to fallback: gemini-2.5-flash via gemini" in status_text
-    assert "Rate limited after 1 retries" in status_text
+    assert "Model fallback:" in status_text
+    assert "gemini-2.5-flash via gemini" in status_text
+    assert "gemini quota exhausted" in status_text
     assert agent._retry_status_buffer == []

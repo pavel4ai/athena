@@ -784,6 +784,7 @@ def _build_provider_picker_rows(config: dict, active: str, provider_labels: dict
         str(p).strip().lower()
         for p in (config.get("model_catalog", {}) or {}).get("excluded_providers") or []
         if p}
+    _cli_excluded.add("nous")
     if _cli_excluded:
         # A canonical provider is hidden if its slug OR any alias is excluded.
         _names_for: dict[str, set[str]] = {_p.slug: {_p.slug.lower()} for _p in CANONICAL_PROVIDERS}
