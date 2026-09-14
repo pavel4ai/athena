@@ -22,7 +22,7 @@ jobs:
       matrix:
         include:
           - name: TUI Vitest
-            command: npm --prefix ui-tui run test
+            command: npm --prefix ui-tui run build:ink && npm --prefix ui-tui run test
             python: true
           - name: Web Vitest
             command: npm --prefix web run test

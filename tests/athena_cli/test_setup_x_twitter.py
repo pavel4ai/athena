@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+
 from athena_cli import setup
 
 
@@ -26,7 +28,7 @@ def test_x_twitter_setup_can_skip_without_changing_config(monkeypatch):
 def test_x_twitter_setup_stores_only_non_secret_metadata(monkeypatch):
     config = {}
     answers = iter(("AthenaNews", "@athena_invest"))
-    monkeypatch.setattr(setup.shutil, "which", lambda name: "/usr/bin/xurl")
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/xurl")
     monkeypatch.setattr(setup, "prompt_yes_no", lambda *args, **kwargs: True)
     monkeypatch.setattr(setup, "prompt", lambda *args, **kwargs: next(answers))
 
