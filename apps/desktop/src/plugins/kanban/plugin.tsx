@@ -12,9 +12,9 @@
 import './kanban.css'
 
 import {
+  type AthenaPlugin,
   cn,
   Codicon,
-  type AthenaPlugin,
   host,
   type KeybindContribution,
   KEYBINDS_AREA,

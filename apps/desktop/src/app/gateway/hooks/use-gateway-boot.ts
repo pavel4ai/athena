@@ -6,9 +6,9 @@ import {
 } from '@athena/shared'
 import { useEffect, useRef } from 'react'
 
-import { shouldApplyPostBootProgressError } from '@/components/boot-failure-reauth'
-import type { DesktopBootProgress, AthenaConnection } from '@/global'
 import { AthenaGateway } from '@/athena'
+import { shouldApplyPostBootProgressError } from '@/components/boot-failure-reauth'
+import type { AthenaConnection, DesktopBootProgress } from '@/global'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import { decideLivenessForceClose, LIVENESS_REPROBE_DELAY_MS } from '@/lib/gateway-liveness-policy'

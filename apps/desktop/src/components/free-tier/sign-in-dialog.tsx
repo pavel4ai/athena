@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useId } from 'react'
 
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import type { ModelSelection } from '@/app/shell/model-menu-panel'
+import { getGlobalModelOptions } from '@/athena'
 import { DeviceCode } from '@/components/onboarding/flow'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +16,6 @@ import {
   DialogTitle,
   preventCloseButtonAutoFocus
 } from '@/components/ui/dialog'
-import { getGlobalModelOptions } from '@/athena'
 import { type Translations, useI18n } from '@/i18n'
 import { CheckCircle2, Loader2 } from '@/lib/icons'
 import { FREE_TIER_MODEL, NOUS_PROVIDER_ID, refreshFreeTierStatus } from '@/store/free-tier'

@@ -8,7 +8,7 @@ import type {
   ModelOptionsResponse
 } from '@/types/athena'
 
-import { capabilityScoped, athenaApi, type ProfileScope, profileScoped, STARTUP_REQUEST_TIMEOUT_MS } from './client'
+import { athenaApi, capabilityScoped, type ProfileScope, profileScoped, STARTUP_REQUEST_TIMEOUT_MS } from './client'
 
 export function getGlobalModelInfo(profile?: null | string): Promise<ModelInfoResponse> {
   return athenaApi<ModelInfoResponse>({

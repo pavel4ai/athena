@@ -102,12 +102,12 @@ export {
   type WindowsBackgroundMaterial
 } from './translucency'
 export {
+  type AthenaWebSocketUrlOptions,
   buildAthenaWebSocketUrl,
   type GatewayAuthMode,
   GatewayReauthRequiredError,
   type GatewayWsConnection,
   type GatewayWsUrlResult,
-  type AthenaWebSocketUrlOptions,
   isGatewayReauthRequired,
   resolveGatewayWsUrl,
   type ResolveGatewayWsUrlDeps,

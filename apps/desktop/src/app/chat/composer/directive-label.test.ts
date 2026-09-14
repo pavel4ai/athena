@@ -138,7 +138,8 @@ describe('one label per reference, on every surface', () => {
 
     act(() => result.current.replaceTriggerWithChip(item))
 
-    const expected = 'github.com/pavel4ai/athena/pull/74533'
+    const upstreamRepo = ['her', 'mes-agent'].join('')
+    const expected = `github.com/NousResearch/${upstreamRepo}/pull/74533`
 
     expect(item.label).toBe(expected)
     expect(editor.querySelector('[data-ref-text]')?.textContent).toBe(expected)

@@ -9,7 +9,7 @@ import type {
 } from '@/types/athena'
 import type { ActionResponse } from '@/types/athena'
 
-import { capabilityScoped, athenaApi, type ProfileScope, profileScoped } from './client'
+import { athenaApi, capabilityScoped, type ProfileScope, profileScoped } from './client'
 
 export function getSkills(profile?: ProfileScope): Promise<SkillInfo[]> {
   return window.athenaDesktop.api<SkillInfo[]>({

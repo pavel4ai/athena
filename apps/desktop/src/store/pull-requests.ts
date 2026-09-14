@@ -1,7 +1,7 @@
 import { atom } from 'nanostores'
 
-import type { AthenaBranchPullRequest } from '@/global'
 import { scanSessionPullRequests, type SessionInfo } from '@/athena'
+import type { AthenaBranchPullRequest } from '@/global'
 import { desktopGit } from '@/lib/desktop-git'
 import { Codecs, persistentAtom } from '@/lib/persisted'
 

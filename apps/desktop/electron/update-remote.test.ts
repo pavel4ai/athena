@@ -33,7 +33,7 @@ test('canonicalGitHubRemote normalizes SSH and HTTPS forms to the same value', (
   assert.equal(canonicalGitHubRemote('ssh://git@github.com/pavel4ai/athena.git'), OFFICIAL_REPO_CANONICAL)
   assert.equal(canonicalGitHubRemote('https://github.com/pavel4ai/athena.git'), OFFICIAL_REPO_CANONICAL)
   // Case-insensitive: an uppercased owner still canonicalizes to the same repo.
-  assert.equal(canonicalGitHubRemote('git@github.com:nousresearch/athena-agent.git'), OFFICIAL_REPO_CANONICAL)
+  assert.equal(canonicalGitHubRemote('git@github.com:PAVEL4AI/ATHENA.git'), OFFICIAL_REPO_CANONICAL)
   // Trailing slashes are stripped.
   assert.equal(canonicalGitHubRemote('https://github.com/pavel4ai/athena/'), OFFICIAL_REPO_CANONICAL)
 })
@@ -57,13 +57,13 @@ test('isOfficialSshRemote is true only for the official repo over SSH', () => {
   assert.equal(isOfficialSshRemote('git@github.com:pavel4ai/athena'), true)
   assert.equal(isOfficialSshRemote('ssh://git@github.com/pavel4ai/athena.git'), true)
   // Case-insensitive owner/repo match.
-  assert.equal(isOfficialSshRemote('git@github.com:nousresearch/athena-agent.git'), true)
+  assert.equal(isOfficialSshRemote('git@github.com:PAVEL4AI/ATHENA.git'), true)
 })
 
 test('isOfficialSshRemote does NOT match forks, other hosts, or HTTPS', () => {
   // A fork over SSH belongs to the user — fetching it is their own remote,
   // not the official upstream, so the SSH-avoidance swap must not apply.
-  assert.equal(isOfficialSshRemote('git@github.com:someuser/athena-agent.git'), false)
+  assert.equal(isOfficialSshRemote('git@github.com:someuser/athena.git'), false)
   // Same repo name on a different host is not the official repo.
   assert.equal(isOfficialSshRemote('git@gitlab.com:pavel4ai/athena.git'), false)
   // HTTPS to the official repo never prompts for SSH/FIDO2, so it keeps the

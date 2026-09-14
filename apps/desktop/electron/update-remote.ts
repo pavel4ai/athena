@@ -13,7 +13,7 @@
  */
 
 const OFFICIAL_REPO_HTTPS_URL = 'https://github.com/pavel4ai/athena.git'
-const OFFICIAL_REPO_CANONICAL = 'github.com/nousresearch/athena-agent'
+const OFFICIAL_REPO_CANONICAL = 'github.com/pavel4ai/athena'
 
 // Normalize common GitHub remote URL forms to `host/owner/repo` (lowercased,
 // no trailing slash, no .git suffix) so SSH and HTTPS forms of the same repo

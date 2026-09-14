@@ -151,10 +151,10 @@ function buildDesktopBackendEnv({
 
 export {
   appendUniquePathEntries,
+  athenaManagedNodePathEntries,
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
   delimiterForPlatform,
-  athenaManagedNodePathEntries,
   normalizeAthenaHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES

@@ -1,4 +1,4 @@
-import { getGlobalModelOptions, type AthenaGateway, type ModelOptionsResponse } from '@/athena'
+import { type AthenaGateway, getGlobalModelOptions, type ModelOptionsResponse } from '@/athena'
 import type { ModelOptionProvider } from '@/types/athena'
 
 type CatalogProviderIdentity = Pick<ModelOptionProvider, 'aliases' | 'name' | 'slug'>

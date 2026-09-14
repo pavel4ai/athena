@@ -1,5 +1,5 @@
-import type { AthenaGitWorktree } from '@/global'
 import type { ProjectInfo, SessionInfo } from '@/athena'
+import type { AthenaGitWorktree } from '@/global'
 import { normalize } from '@/lib/text'
 
 import { rankSessions } from '../order'

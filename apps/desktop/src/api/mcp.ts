@@ -1,6 +1,6 @@
 import type { McpCatalogResponse, McpServerSummary } from '@/types/athena'
 
-import { capabilityScoped, athenaApi, type ProfileScope, profileScoped } from './client'
+import { athenaApi, capabilityScoped, type ProfileScope, profileScoped } from './client'
 
 export interface McpTestResult {
   ok: boolean

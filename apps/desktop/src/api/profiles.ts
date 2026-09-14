@@ -6,7 +6,7 @@ import type {
   ProfilesResponse
 } from '@/types/athena'
 
-import { capabilityScoped, athenaApi, type ProfileScope, STARTUP_REQUEST_TIMEOUT_MS } from './client'
+import { athenaApi, capabilityScoped, type ProfileScope, STARTUP_REQUEST_TIMEOUT_MS } from './client'
 
 export function getProfiles(): Promise<ProfilesResponse> {
   return athenaApi<ProfilesResponse>({

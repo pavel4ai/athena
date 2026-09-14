@@ -5,9 +5,9 @@ import { test } from 'vitest'
 
 import {
   appendUniquePathEntries,
+  athenaManagedNodePathEntries,
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
-  athenaManagedNodePathEntries,
   normalizeAthenaHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES

@@ -5,10 +5,10 @@
 // capabilityScoped are shared across api/ but must not reach call sites, or
 // request scoping stops having a single owner.
 export {
-  getApiRequestConnection,
-  getApiRequestProfile,
   athenaApi,
   AthenaGateway,
+  getApiRequestConnection,
+  getApiRequestProfile,
   profileScopeKey,
   PROMPT_SUBMIT_REQUEST_TIMEOUT_MS,
   setApiRequestConnection,
@@ -38,6 +38,8 @@ export type {
   AnalyticsSkillEntry,
   AnalyticsSkillsSummary,
   AnalyticsTotals,
+  AthenaConfig,
+  AthenaConfigRecord,
   AudioSpeakResponse,
   AudioTranscriptionResponse,
   AudioTtsLeaseResponse,
@@ -66,8 +68,6 @@ export type {
   ElevenLabsVoicesResponse,
   EnvVarInfo,
   GatewayReadyPayload,
-  AthenaConfig,
-  AthenaConfigRecord,
   LogsResponse,
   McpCatalogEntry,
   McpCatalogResponse,

@@ -1,5 +1,5 @@
 import { asText, normalize } from '@/lib/text'
-import type { ConfigFieldSchema, AthenaConfigRecord, ToolsetInfo } from '@/types/athena'
+import type { AthenaConfigRecord, ConfigFieldSchema, ToolsetInfo } from '@/types/athena'
 
 import { BUILTIN_PERSONALITIES, ENUM_OPTIONS, PROVIDER_GROUPS, SECTIONS } from './constants'
 

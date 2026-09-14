@@ -1,8 +1,8 @@
 import { LOCAL_CONNECTION_ID, registryBackendScopeKey } from '@athena/shared'
 import { atom, batch, computed } from 'nanostores'
 
+import { athenaApi, getProfiles, setApiRequestProfile, STARTUP_REQUEST_TIMEOUT_MS } from '@/athena'
 import type { AthenaConnection } from '@/global'
-import { getProfiles, athenaApi, setApiRequestProfile, STARTUP_REQUEST_TIMEOUT_MS } from '@/athena'
 import { invalidateProfileScopedQueries } from '@/lib/query-client'
 import {
   arraysEqual,

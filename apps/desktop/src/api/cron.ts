@@ -7,7 +7,7 @@ import type {
   SessionInfo
 } from '@/types/athena'
 
-import { connectionScoped, athenaApi, profileScoped, STARTUP_REQUEST_TIMEOUT_MS } from './client'
+import { athenaApi, connectionScoped, profileScoped, STARTUP_REQUEST_TIMEOUT_MS } from './client'
 
 // The cron trigger endpoint intentionally waits for the whole job so its
 // response reflects the persisted execution result. Agent jobs can run far

@@ -6,8 +6,8 @@ import {
   NO_PROJECT_ID,
   type SidebarProjectTree
 } from '@/app/chat/sidebar/projects/workspace-groups'
+import { athenaApi, type AthenaGateway, getAthenaConfig } from '@/athena'
 import type { AthenaGitBaseBranch, AthenaGitBranch } from '@/global'
-import { getAthenaConfig, athenaApi, type AthenaGateway } from '@/athena'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd, isDesktopFsRemoteMode, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'

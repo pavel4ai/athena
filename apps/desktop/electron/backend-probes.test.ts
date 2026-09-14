@@ -13,9 +13,9 @@ import path from 'node:path'
 import { test } from 'vitest'
 
 import {
+  athenaRuntimeImportProbe,
   canImportAthenaCli,
   DEFAULT_PROBE_TIMEOUT_MS,
-  athenaRuntimeImportProbe,
   PROBE_TIMEOUT_MS,
   resolveProbeTimeoutMs,
   shouldTrustAthenaOverride,

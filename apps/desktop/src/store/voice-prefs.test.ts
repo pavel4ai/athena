@@ -14,14 +14,15 @@ it('keeps the desktop toggle local across config refreshes', async () => {
     for (const enabled of [false, true]) {
       localStorage.clear()
       vi.resetModules()
-      const prefs = await import('./voice-prefs')
-      const write = vi.spyOn(localStorage, 'setItem')
+      const write = vi.spyOn(Storage.prototype, 'setItem')
 
       if (fails) {
         write.mockImplementation(() => {
           throw new DOMException('Full', 'QuotaExceededError')
         })
       }
+
+      const prefs = await import('./voice-prefs')
 
       vi.mocked(saveAthenaConfig).mockClear()
 
@@ -43,14 +44,15 @@ it('migrates the legacy preference once, not on every refresh', async () => {
     for (const enabled of [false, true]) {
       localStorage.clear()
       vi.resetModules()
-      const prefs = await import('./voice-prefs')
-      const write = vi.spyOn(localStorage, 'setItem')
+      const write = vi.spyOn(Storage.prototype, 'setItem')
 
       if (fails) {
         write.mockImplementation(() => {
           throw new DOMException('Denied', 'SecurityError')
         })
       }
+
+      const prefs = await import('./voice-prefs')
 
       try {
         prefs.applyAutoSpeakFromConfig(null)

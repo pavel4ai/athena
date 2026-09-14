@@ -5,10 +5,10 @@ import { $composerAttachments, type ComposerAttachment, updateComposerAttachment
 import { $connection } from '@/store/session'
 
 import {
+  ATHENA_PATHS_MIME,
   attachmentPreviewDataUrl,
   type DroppedFile,
   extractDroppedFiles,
-  ATHENA_PATHS_MIME,
   partitionDroppedFiles,
   useComposerActions
 } from './use-composer-actions'

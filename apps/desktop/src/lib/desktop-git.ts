@@ -1,3 +1,4 @@
+import { athenaApi } from '@/athena'
 import type {
   AthenaGitBaseBranch,
   AthenaGitBranch,
@@ -7,7 +8,6 @@ import type {
   AthenaReviewList,
   AthenaReviewShipInfo
 } from '@/global'
-import { athenaApi } from '@/athena'
 
 import { desktopFsProfile, isDesktopFsRemoteMode } from './desktop-fs'
 

@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getAthenaConfigRecord, type AthenaConfigRecord, saveAthenaConfig } from '@/athena'
+import { type AthenaConfigRecord, getAthenaConfigRecord, saveAthenaConfig } from '@/athena'
 
 import { TRANSLATIONS } from './catalog'
 import {

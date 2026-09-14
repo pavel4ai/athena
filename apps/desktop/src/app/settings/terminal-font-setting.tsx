@@ -6,9 +6,9 @@ import {
   setTerminalFontFamilyFromConfig,
   TERMINAL_FONT_SUGGESTIONS
 } from '@/app/right-sidebar/terminal/terminal-font'
+import { saveAthenaConfig } from '@/athena'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { saveAthenaConfig } from '@/athena'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 import type { AthenaConfigRecord } from '@/types/athena'

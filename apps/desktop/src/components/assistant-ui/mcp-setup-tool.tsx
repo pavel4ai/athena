@@ -6,11 +6,6 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import { capabilityScoped } from '@/api/client'
 import { useSessionView } from '@/app/chat/session-view'
-import { ToolFallback } from '@/components/assistant-ui/tool/fallback'
-import { WIDGET_SHELL_CLASS } from '@/components/chat/widget-shell'
-import { Button } from '@/components/ui/button'
-import { Codicon } from '@/components/ui/codicon'
-import { Input } from '@/components/ui/input'
 import {
   addMcpServer,
   getActionStatus,
@@ -20,6 +15,11 @@ import {
   removeMcpServer,
   setMcpServerEnabled
 } from '@/athena'
+import { ToolFallback } from '@/components/assistant-ui/tool/fallback'
+import { WIDGET_SHELL_CLASS } from '@/components/chat/widget-shell'
+import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
+import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AlertCircle, CheckCircle2, Loader2 } from '@/lib/icons'

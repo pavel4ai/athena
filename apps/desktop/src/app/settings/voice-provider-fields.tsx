@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { getElevenLabsVoices, getAthenaConfigSchema, saveAthenaConfig } from '@/athena'
+import { getAthenaConfigSchema, getElevenLabsVoices, saveAthenaConfig } from '@/athena'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 import type { AthenaConfigRecord } from '@/types/athena'

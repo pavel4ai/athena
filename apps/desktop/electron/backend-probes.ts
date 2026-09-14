@@ -210,10 +210,10 @@ function verifyAthenaCli(athenaCommand: string, opts?: { shell?: boolean }) {
 }
 
 export {
+  athenaRuntimeImportProbe,
   canImportAthenaCli,
   DEFAULT_PROBE_TIMEOUT_MS,
   execProbeSync,
-  athenaRuntimeImportProbe,
   PROBE_TIMEOUT_MS,
   resolveProbeTimeoutMs,
   shouldTrustAthenaOverride,

@@ -5,6 +5,7 @@
 
 import { atom } from 'nanostores'
 
+import { checkAthenaUpdate, getActionStatus, updateAthena } from '@/athena'
 import type {
   DesktopUpdateApplyOptions,
   DesktopUpdateApplyResult,
@@ -14,7 +15,6 @@ import type {
   DesktopUpdateStatus,
   DesktopVersionInfo
 } from '@/global'
-import { checkAthenaUpdate, getActionStatus, updateAthena } from '@/athena'
 import { translateNow } from '@/i18n'
 import { persistString, storedString } from '@/lib/storage'
 import { $connectionsRegistry, refreshConnectionsRegistry } from '@/store/connections'
