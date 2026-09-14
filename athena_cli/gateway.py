@@ -166,7 +166,7 @@ def _get_service_pids(all_profiles: bool = False) -> set:
                             pids.add(pid)
                     except (ValueError, subprocess.TimeoutExpired):
                         pass
-            except (FileNotFoundError, subprocess.TimeoutExpired):
+            except (OSError, subprocess.TimeoutExpired):
                 pass
 
     # --- launchd (macOS) ---
@@ -201,7 +201,7 @@ def _get_service_pids(all_profiles: bool = False) -> set:
                                     pids.add(pid)
                             except ValueError:
                                 pass
-            except (FileNotFoundError, subprocess.TimeoutExpired):
+            except (OSError, subprocess.TimeoutExpired):
                 pass
 
     return pids

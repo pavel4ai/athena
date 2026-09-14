@@ -29,8 +29,8 @@ _EXACT_PROTECTED_TERMS = (
 )
 
 _EXTERNAL_MODEL_PREFIX = re.compile(
-    rf"\b(?:{OLD_TITLE}|{OLD_LOWER}|{OLD_UPPER})"
-    r"(?:-Agent-Thinking|[- ](?:3|4)|3)"
+    rf"(?<![A-Za-z0-9])(?:{OLD_TITLE}|{OLD_LOWER}|{OLD_UPPER})"
+    r"(?:-Agent-Thinking|[-_ ](?:3|4)|3)"
 )
 
 _PRODUCT_REPOSITORY_REPLACEMENTS = (
@@ -50,6 +50,12 @@ _EXTERNAL_MODEL_REPAIRS = (
     (f"{NEW_LOWER}-4", f"{OLD_LOWER}-4"),
     (f"{NEW_UPPER}-3", f"{OLD_UPPER}-3"),
     (f"{NEW_UPPER}-4", f"{OLD_UPPER}-4"),
+    (f"{NEW_TITLE}_3", f"{OLD_TITLE}_3"),
+    (f"{NEW_TITLE}_4", f"{OLD_TITLE}_4"),
+    (f"{NEW_LOWER}_3", f"{OLD_LOWER}_3"),
+    (f"{NEW_LOWER}_4", f"{OLD_LOWER}_4"),
+    (f"{NEW_UPPER}_3", f"{OLD_UPPER}_3"),
+    (f"{NEW_UPPER}_4", f"{OLD_UPPER}_4"),
     (f"{NEW_TITLE} 3", f"{OLD_TITLE} 3"),
     (f"{NEW_TITLE} 4", f"{OLD_TITLE} 4"),
     (f"{NEW_LOWER} 3", f"{OLD_LOWER} 3"),

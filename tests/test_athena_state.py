@@ -963,6 +963,8 @@ class TestFTS5Search:
 
         statements = []
         read_conn = db._get_read_conn() or db._conn
+        original_read_ctx = db._read_ctx
+        db._read_ctx = lambda: contextlib.nullcontext(read_conn)
         traced_connections = [db._conn]
         if read_conn is not db._conn:
             traced_connections.append(read_conn)
@@ -992,6 +994,7 @@ class TestFTS5Search:
             assert default[0]["context"]
             assert context_query_count() == 2
         finally:
+            db._read_ctx = original_read_ctx
             for conn in traced_connections:
                 conn.set_trace_callback(None)
 

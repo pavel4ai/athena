@@ -86,7 +86,10 @@ class TestNoOverlayFlag:
         monkeypatch.setenv("DISPLAY", ":0")
         monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-0")
         monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
-        with patch("athena_cli.config.load_config", return_value={}):
+        with (
+            patch("athena_cli.config.load_config", return_value={}),
+            patch("builtins.open", mock_open(read_data="Linux native")),
+        ):
             assert cua_backend._cua_no_overlay() is False
 
     @pytest.mark.linux_only

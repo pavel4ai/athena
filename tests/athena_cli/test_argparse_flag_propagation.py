@@ -93,6 +93,7 @@ class TestChatVerboseArg:
         monkeypatch.setitem(sys.modules, "cli", fake_cli)
         monkeypatch.setitem(sys.modules, "athena_cli.banner", fake_banner)
         monkeypatch.setitem(sys.modules, "tools.skills_sync", fake_skills_sync)
+        monkeypatch.setattr(main_mod, "_is_first_run_config_missing", lambda: False)
         monkeypatch.setattr(main_mod, "_has_any_provider_configured", lambda: True)
         monkeypatch.setattr(main_mod, "_pin_kanban_board_env", lambda: None)
 

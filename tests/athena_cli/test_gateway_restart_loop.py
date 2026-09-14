@@ -28,7 +28,7 @@ class TestGatewayLifecyclePattern:
         "athena gateway stop",
         "athena gateway uninstall",
         "athena  gateway  restart",         # double spaces
-        "Hermez Gateway Restart".lower().replace("z", "s"),  # case handled
+        "AtHeNa Gateway Restart",             # case handled
         "ATHENA GATEWAY RESTART",           # uppercase
     ])
     def test_athena_gateway_commands(self, text):

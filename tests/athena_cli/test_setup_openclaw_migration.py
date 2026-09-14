@@ -158,8 +158,8 @@ class TestSetupWizardOpenclawIntegration:
             patch("athena_cli.auth.get_active_provider", return_value=None),
             # User presses Enter to start
             patch("builtins.input", return_value=""),
-            # Select "Full setup" (index 1) so we exercise the full path
-            patch.object(setup_mod, "prompt_choice", return_value=1),
+            # Select "Full setup" (index 0) so we exercise the full path
+            patch.object(setup_mod, "prompt_choice", return_value=0),
             # Mock the migration offer
             patch.object(
                 setup_mod, "_offer_openclaw_migration", return_value=False
@@ -170,6 +170,7 @@ class TestSetupWizardOpenclawIntegration:
             patch.object(setup_mod, "setup_agent_settings"),
             patch.object(setup_mod, "setup_gateway"),
             patch.object(setup_mod, "setup_tools"),
+            patch.object(setup_mod, "setup_x_twitter_news"),
             patch.object(setup_mod, "save_config"),
             patch.object(setup_mod, "_print_setup_summary"),
         ):
@@ -194,13 +195,14 @@ class TestSetupWizardOpenclawIntegration:
             patch.object(setup_mod, "is_interactive_stdin", return_value=True),
             patch("athena_cli.auth.get_active_provider", return_value=None),
             patch("builtins.input", return_value=""),
-            patch.object(setup_mod, "prompt_choice", return_value=1),
+            patch.object(setup_mod, "prompt_choice", return_value=0),
             patch.object(setup_mod, "_offer_openclaw_migration", return_value=True),
             patch.object(setup_mod, "setup_model_provider"),
             patch.object(setup_mod, "setup_terminal_backend"),
             patch.object(setup_mod, "setup_agent_settings"),
             patch.object(setup_mod, "setup_gateway"),
             patch.object(setup_mod, "setup_tools"),
+            patch.object(setup_mod, "setup_x_twitter_news"),
             patch.object(setup_mod, "save_config"),
             patch.object(setup_mod, "_print_setup_summary"),
         ):
@@ -311,11 +313,20 @@ class TestSetupWizardSkipsConfiguredSections:
             patch.object(setup_mod, "is_interactive_stdin", return_value=True),
             patch("athena_cli.auth.get_active_provider", return_value=None),
             patch("builtins.input", return_value=""),
-            patch.object(setup_mod, "prompt_choice", return_value=1),
+            patch.object(setup_mod, "prompt_choice", return_value=0),
             # Migration succeeds and flips the env_side flag
             patch.object(
                 setup_mod, "_offer_openclaw_migration",
                 side_effect=fake_migration,
+            ),
+            patch.object(
+                setup_mod,
+                "_skip_configured_section",
+                side_effect=lambda _cfg, key, _label: key in {
+                    "model",
+                    "terminal",
+                    "agent",
+                },
             ),
             # User says No to all reconfig prompts
             patch.object(setup_mod, "prompt_yes_no", return_value=False),
@@ -324,6 +335,7 @@ class TestSetupWizardSkipsConfiguredSections:
             patch.object(setup_mod, "setup_agent_settings") as mock_agent,
             patch.object(setup_mod, "setup_gateway") as mock_gateway,
             patch.object(setup_mod, "setup_tools") as mock_tools,
+            patch.object(setup_mod, "setup_x_twitter_news"),
             patch.object(setup_mod, "save_config"),
             patch.object(setup_mod, "_print_setup_summary"),
         ):

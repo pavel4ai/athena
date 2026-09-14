@@ -74,11 +74,10 @@ def test_guest_identity_shows_free_tier_row_with_only_welcome_model(guest_home, 
     rendered = repr(row).lower()
     assert "guest" not in rendered and "anonymous" not in rendered
 
-    # The `athena model` provider picker applies the same rule from the same helper.
+    # Athena keeps the explicit free-tier runtime path but hides Nous from the
+    # top-level provider setup picker.
     cli_rows = _cli_nous_rows({})
-    assert len(cli_rows) == 1
-    assert "free tier" in cli_rows[0][1]
-    assert "guest" not in cli_rows[0][1].lower() and "anonymous" not in cli_rows[0][1].lower()
+    assert cli_rows == []
 
 
 def test_guest_identity_with_guest_off_hides_the_nous_row(guest_home, monkeypatch):

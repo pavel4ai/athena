@@ -51,8 +51,8 @@ def _strip_allowed_external_references(text: str, relative: Path) -> str:
     text = history_url.sub("", text)
 
     external_model = re.compile(
-        rf"\b(?:{title}|{lower}|{upper})"
-        r"(?:-Agent-Thinking|[- ](?:3|4)|3)"
+        rf"(?<![A-Za-z0-9])(?:{title}|{lower}|{upper})"
+        r"(?:-Agent-Thinking|[-_ ](?:3|4)|3)"
         r"[A-Za-z0-9._:/-]*"
     )
     return external_model.sub("", text)

@@ -578,8 +578,9 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
 
     monkeypatch.setattr("athena_cli.auth._login_nous", _fake_login)
 
-    athena_main.cmd_model(
-        SimpleNamespace(
+    model_setup_flows._model_flow_nous(
+        {},
+        args=SimpleNamespace(
             portal_url="https://portal.nousresearch.com",
             inference_url="https://inference.nousresearch.com/v1",
             client_id="athena-local",
@@ -588,7 +589,7 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
             timeout=7.5,
             ca_bundle="/tmp/local-ca.pem",
             insecure=True,
-        )
+        ),
     )
 
     assert captured == {

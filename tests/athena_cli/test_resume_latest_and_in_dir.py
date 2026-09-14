@@ -36,6 +36,7 @@ def _args(**overrides):
 def main_mod(monkeypatch):
     import athena_cli.main as mod
 
+    monkeypatch.setattr(mod, "_is_first_run_config_missing", lambda: False)
     monkeypatch.setattr(mod, "_has_any_provider_configured", lambda: True)
     monkeypatch.setattr(mod, "_sync_bundled_skills_for_startup", lambda: False)
     monkeypatch.setattr(mod, "_pin_kanban_board_env", lambda: None)

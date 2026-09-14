@@ -72,6 +72,7 @@ class TestExtensionHookDefaults:
 
     def test_build_tui_layout_children_returns_all_widgets_in_order(self):
         cli = _make_cli()
+        cli._build_supplemental_status_widgets = lambda: []
         children = cli._build_tui_layout_children(
             sudo_widget="sudo",
             secret_widget="secret",
@@ -100,6 +101,7 @@ class TestExtensionHookSubclass:
         cli = _make_cli()
         # Monkey-patch to simulate subclass override
         cli._get_extra_tui_widgets = lambda: ["radio-menu", "mini-player"]
+        cli._build_supplemental_status_widgets = lambda: []
 
         children = cli._build_tui_layout_children(
             sudo_widget="sudo",

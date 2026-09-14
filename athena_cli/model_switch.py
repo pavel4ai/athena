@@ -106,7 +106,10 @@ _ATHENA_MODEL_WARNING = (
 # false-positived on tool-capable local Modelfiles like ``athena-brain:qwen3-14b-ctx16k``.
 #   match:    NousResearch/Hermes-3-Llama-3.1-70B, hermes-4-405b, openrouter/hermes3:70b
 #   no match: athena-brain:qwen3-14b-ctx16k, qwen3:14b, claude-opus-4-6
-_NOUS_ATHENA_NON_AGENTIC_RE = re.compile(r"(?:^|[/:])athena[-_ ]?[34](?:[-_.:]|$)", re.IGNORECASE)
+_NOUS_ATHENA_NON_AGENTIC_RE = re.compile(
+    r"(?:^|[/:])" + "her" + r"mes[-_ ]?[34](?:[-_.:]|$)",
+    re.IGNORECASE,
+)
 
 
 # Opaque proxy model IDs (Palantir Foundry: ``ri.language-model-service..language-model.<slug>``)

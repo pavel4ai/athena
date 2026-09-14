@@ -953,7 +953,7 @@ def test_visible_providers_reuses_logged_out_feature_snapshot(monkeypatch):
         TOOL_CATEGORIES["image_gen"], {}, features=features
     )
 
-    assert any(
+    assert not any(
         provider.get("managed_nous_feature") == "image_gen"
         for provider in providers
     )

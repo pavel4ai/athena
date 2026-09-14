@@ -72,6 +72,7 @@ def test_external_model_identifiers_are_preserved():
     source = (
         f"NousResearch/{transform.OLD_TITLE}-3-Llama-3.1-70B "
         f"nousresearch/{transform.OLD_LOWER}-4-405b "
+        f"FP16_{transform.OLD_TITLE}_4.5 "
         f"{transform.OLD_TITLE}-Agent-Thinking-GLM-4.7-SFT2"
     )
 

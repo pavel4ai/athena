@@ -63,6 +63,7 @@ def _missing_config_name_error(name: str = "resolve_turn_limit") -> ImportError:
 def main_mod(monkeypatch):
     import athena_cli.main as mod
 
+    monkeypatch.setattr(mod, "_is_first_run_config_missing", lambda: False)
     monkeypatch.setattr(mod, "_has_any_provider_configured", lambda: True)
     monkeypatch.setattr(mod, "_sync_bundled_skills_for_startup", lambda: None)
     monkeypatch.setattr(mod, "_termux_should_prefetch_update_check", lambda: False)
